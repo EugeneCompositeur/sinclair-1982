@@ -9,6 +9,7 @@ const spectrum = Object.fromEntries(KEYS.map(k => [k.id, k]));
 
 // Keys of our own. `hint` names the original finger-breaking combination.
 const EXTRA = {
+  EDIT:      { id: 'EDIT',      main: 'EDIT',      hint: 'CS + 1', kind: 'util' },
   BACKSPACE: { id: 'BACKSPACE', main: 'BACKSPACE', hint: 'CS + 0', kind: 'util' },
   CAPSLOCK:  { id: 'CAPSLOCK',  main: 'CAPS LOCK', hint: 'CS + 2', kind: 'util' },
   EXT:       { id: 'EXT',       main: 'E',         hint: 'MODE',   kind: 'util' },
@@ -23,15 +24,18 @@ const key = id => spectrum[id] || EXTRA[id];
 
 // One grid for the whole keyboard, 49 quarter-key columns wide, so the stagger
 // lands on exact fractions and ENTER can stand two rows tall.
-const COLUMNS = 49;
+// The stagger is the real one: each row's first key is a quarter to half a key
+// wider than the last, so no letter sits square under the one above it.
+// 1 at 1u, Q at 1.5u, A at 1.75u, Z at 2.25u.
+const COLUMNS = 51;
 const U = 4;
 const SPAN = {
-  BACKSPACE: 9, EXT: 4, ENTER: 8, CAPSLOCK: 5,
-  CS: 8, SS: 7, CS2: 6, SPACE: 25, F1: 6, F2: 6, F3: 6, F4: 6,
+  EDIT: 4, BACKSPACE: 7, EXT: 6, ENTER: 8, CAPSLOCK: 7,
+  CS: 9, SS: 7, CS2: 7, SPACE: 27, F1: 6, F2: 6, F3: 6, F4: 6,
 };
 
 const LAYOUT = [
-  ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'BACKSPACE'],
+  ['EDIT', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'BACKSPACE'],
   ['EXT', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
   ['CAPSLOCK', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'ENTER'],
   ['CS', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'SS', 'CS2'],
@@ -40,7 +44,7 @@ const LAYOUT = [
 
 const PC_KEYS = {
   Enter: 'ENTER', ' ': 'SPACE', Backspace: 'BACKSPACE', Tab: 'EXT',
-  CapsLock: 'CAPSLOCK', Escape: 'F1',
+  CapsLock: 'CAPSLOCK', Escape: 'EDIT',
   ShiftLeft: 'CS', ShiftRight: 'CS2',
   ControlLeft: 'SS', ControlRight: 'SS', AltLeft: 'SS', AltRight: 'SS',
   F1: 'F1', F2: 'F2', F3: 'F3', F4: 'F4',

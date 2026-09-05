@@ -52,6 +52,7 @@ function handle(id, mods) {
     case 'ENTER':     state.line = ''; state.ext = false; return finish();
     case 'F1':        state.line = ''; state.caps = state.ext = false;
                       state.typed = false; return finish();
+    case 'EDIT':
     case 'F2': case 'F3': case 'F4': return;   // waiting on the Z80
   }
 

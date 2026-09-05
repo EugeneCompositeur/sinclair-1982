@@ -208,7 +208,7 @@ body {
   height: calc(var(--enter-step) + 9px);
   background-position: 0 0;
 }
-.cap[data-id="EXT"] { padding: 6px 2px; }
+
 
 .line {
   display: flex;
@@ -232,7 +232,7 @@ body {
   letter-spacing: .07em;
   color: #dfe2e4;
 }
-.cap[data-id="EXT"] .main-plain { font-size: 13px; letter-spacing: 0; }
+.cap[data-id="EXT"] .main-plain { font-size: 15px; letter-spacing: 0; }
 
 .ss {
   font-size: 10px;
