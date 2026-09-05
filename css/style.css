@@ -1,0 +1,182 @@
+:root {
+  --case: #17181a;
+  --case-edge: #0b0c0d;
+  --key-top: #7d8285;
+  --key-bottom: #565b5e;
+  --key-edge: #3a3e40;
+  --red: #d8483c;
+  --green: #4aa564;
+  --legend: #d6d8d8;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 32px 16px 64px;
+  background: #101113;
+  color: #999;
+  font: 14px/1.4 system-ui, sans-serif;
+  display: flex;
+  justify-content: center;
+}
+
+.desk { width: 100%; max-width: 860px; }
+
+/* ---- the television ---- */
+
+.tv {
+  background: #0a0a0b;
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: inset 0 0 60px #000, 0 12px 40px rgba(0, 0, 0, .6);
+}
+
+#screen {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  border-radius: 3px;
+}
+
+/* ---- the machine ---- */
+
+.case {
+  margin-top: 26px;
+  background: linear-gradient(#232528, var(--case) 30%, var(--case-edge));
+  border-radius: 10px 10px 16px 16px;
+  padding: 26px 26px 16px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .65), inset 0 1px 0 #3a3d41;
+}
+
+.keyboard { display: grid; gap: 13px 0; }
+
+.kbd-row {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 0 10px;
+}
+
+.key-cell {
+  display: grid;
+  grid-template-rows: 11px auto 11px;
+  gap: 2px;
+  justify-items: center;
+}
+
+.legend {
+  font-size: 7px;
+  line-height: 11px;
+  letter-spacing: .02em;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.legend.green { color: var(--green); }
+.legend.red   { color: var(--red); }
+.legend.white { color: var(--legend); }
+
+/* ---- the rubber keys ---- */
+
+.cap {
+  position: relative;
+  width: 100%;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px 3px 5px 5px;
+  background: linear-gradient(#8b9093 0%, var(--key-top) 18%, var(--key-bottom) 82%, #4a4f52 100%);
+  box-shadow: 0 2px 0 var(--key-edge), 0 3px 4px rgba(0, 0, 0, .5),
+              inset 0 1px 0 rgba(255, 255, 255, .28);
+  cursor: pointer;
+  font: inherit;
+  transition: transform .05s, box-shadow .05s;
+}
+.cap:focus-visible { outline: 2px solid #6ab7ff; outline-offset: 2px; }
+
+.key-cell.down .cap,
+.key-cell.held .cap {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--key-edge), 0 1px 2px rgba(0, 0, 0, .5),
+              inset 0 1px 0 rgba(255, 255, 255, .18);
+}
+.key-cell.held .cap { background: linear-gradient(#9aa0a3, #6b7174); }
+
+.main {
+  position: absolute;
+  top: 3px; left: 5px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+.main-special {
+  position: static;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0 3px;
+  font-size: 8px;
+  letter-spacing: .02em;
+  text-align: center;
+}
+
+.kw {
+  position: absolute;
+  left: 0; right: 0; bottom: 4px;
+  font-size: 7px;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  letter-spacing: .01em;
+}
+
+.ss {
+  position: absolute;
+  top: 3px; right: 4px;
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--red);
+  line-height: 1;
+}
+
+.swatch {
+  position: absolute;
+  left: 5px; bottom: 5px;
+  width: 12px; height: 7px;
+  border: 1px solid rgba(0, 0, 0, .35);
+}
+.swatch[data-colour="0"] { background: #000; }
+.swatch[data-colour="1"] { background: #0000d7; }
+.swatch[data-colour="2"] { background: #d70000; }
+.swatch[data-colour="3"] { background: #d700d7; }
+.swatch[data-colour="4"] { background: #00d700; }
+.swatch[data-colour="5"] { background: #00d7d7; }
+.swatch[data-colour="6"] { background: #d7d700; }
+.swatch[data-colour="7"] { background: #d7d7d7; }
+
+/* ---- the corner ---- */
+
+.brand {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.rainbow { display: flex; gap: 2px; transform: skewX(-20deg); }
+.rainbow i { width: 7px; height: 20px; }
+.rainbow i:nth-child(1) { background: #d70000; }
+.rainbow i:nth-child(2) { background: #d7d700; }
+.rainbow i:nth-child(3) { background: #00d700; }
+.rainbow i:nth-child(4) { background: #00d7d7; }
+
+.wordmark {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: #e8e8e8;
+}
+.wordmark span { font-weight: 400; margin-left: 4px; }
