@@ -43,15 +43,27 @@ function control(digit) {
 }
 
 function handle(id, mods) {
+  state.typed = true;
+
+  switch (id) {
+    case 'BACKSPACE': state.line = state.line.slice(0, -1); return finish();
+    case 'CAPSLOCK':  state.caps = !state.caps; return finish();
+    case 'EXT':       state.ext = !state.ext; return finish();
+    case 'ENTER':     state.line = ''; state.ext = false; return finish();
+    case 'F1':        state.line = ''; state.caps = state.ext = false;
+                      state.typed = false; return finish();
+    case 'F2': case 'F3': case 'F4': return;   // waiting on the Z80
+  }
+
+  // Both shifts together are how the real machine reaches extended mode.
+  if (mods.CS && mods.SS) { state.ext = !state.ext; return finish(); }
+
   const k = byId[id];
   if (!k) return;
 
-  if (mods.CS && mods.SS) { state.ext = !state.ext; state.typed = true; draw(); return; }
-
-  state.typed = true;
-  if (id === 'ENTER') { state.line = ''; state.ext = false; }
-  else if (id === 'SPACE') { if (!mods.CS) insert(' '); }
-  else if (/^[A-Z]$/.test(id)) {
+  if (id === 'SPACE') {
+    if (!mods.CS) insert(' ');
+  } else if (/^[A-Z]$/.test(id)) {
     if (state.ext) { insertWord(mods.SS ? k.below : k.above); state.ext = false; }
     else if (mods.SS) insertWord(k.symbol);
     else if (state.line === '') insertWord(k.keyword);
@@ -62,10 +74,16 @@ function handle(id, mods) {
     else if (mods.SS) insert(k.symbol);
     else insert(id);
   }
+  finish();
+}
+
+function finish() {
+  keyboard.setLatch('CAPSLOCK', state.caps);
+  keyboard.setLatch('EXT', state.ext);
   draw();
 }
 
-new Keyboard(document.getElementById('keyboard'), handle);
+const keyboard = new Keyboard(document.getElementById('keyboard'), handle);
 
 draw();
 (function loop() {
