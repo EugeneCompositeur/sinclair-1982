@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
   await page.screenshot({ path: 'tools/shot-boot.png', fullPage: true });
   // type PRINT "HELLO" via clicks: P, then SS+P, H,E,L,L,O, SS+P
   for (const step of [['P'],['SS'],['P'],['H'],['E'],['L'],['L'],['O'],['SS'],['P']]) {
-    await page.click(`.key-cell[data-id="${step[0]}"] .cap`);
+    await page.click(`.cap[data-id="${step[0]}"]`);
     await page.waitForTimeout(30);
   }
   await page.waitForTimeout(300);

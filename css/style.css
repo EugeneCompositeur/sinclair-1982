@@ -45,107 +45,104 @@ body {
 .case {
   margin-top: 26px;
   background: linear-gradient(#232528, var(--case) 30%, var(--case-edge));
-  border-radius: 10px 10px 16px 16px;
-  padding: 26px 26px 16px;
+  border-radius: 12px;
+  padding: 20px 20px 14px;
   box-shadow: 0 14px 34px rgba(0, 0, 0, .65), inset 0 1px 0 #3a3d41;
 }
 
-.keyboard { display: grid; gap: 13px 0; }
+.keyboard { display: grid; gap: 7px; }
 
-.kbd-row {
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 0 10px;
-}
+.kbd-row { display: grid; gap: 7px; }
 
-.key-cell {
-  display: grid;
-  grid-template-rows: 11px auto 11px;
-  gap: 2px;
-  justify-items: center;
-}
-
-.legend {
-  font-size: 7px;
-  line-height: 11px;
-  letter-spacing: .02em;
-  white-space: nowrap;
-  font-weight: 600;
-}
-.legend.green { color: var(--green); }
-.legend.red   { color: var(--red); }
-.legend.white { color: var(--legend); }
-
-/* ---- the rubber keys ---- */
+/* ---- the keys ---- */
 
 .cap {
   position: relative;
-  width: 100%;
-  height: 42px;
-  padding: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 62px;
+  padding: 5px 6px 4px;
   border: 0;
-  border-radius: 3px 3px 5px 5px;
-  background: linear-gradient(#8b9093 0%, var(--key-top) 18%, var(--key-bottom) 82%, #4a4f52 100%);
-  box-shadow: 0 2px 0 var(--key-edge), 0 3px 4px rgba(0, 0, 0, .5),
-              inset 0 1px 0 rgba(255, 255, 255, .28);
+  border-radius: 7px;
+  background: linear-gradient(#3a3e43, #2b2e32 55%, #24272a);
+  box-shadow: 0 2px 0 #131517, 0 3px 6px rgba(0, 0, 0, .45),
+              inset 0 1px 0 rgba(255, 255, 255, .09);
   cursor: pointer;
   font: inherit;
-  transition: transform .05s, box-shadow .05s;
+  text-align: left;
+  transition: transform .05s, box-shadow .05s, background .05s;
 }
+.cap:hover { background: linear-gradient(#43474d, #313539 55%, #292c30); }
 .cap:focus-visible { outline: 2px solid #6ab7ff; outline-offset: 2px; }
 
-.key-cell.down .cap,
-.key-cell.held .cap {
+.cap.down, .cap.held {
   transform: translateY(2px);
-  box-shadow: 0 0 0 var(--key-edge), 0 1px 2px rgba(0, 0, 0, .5),
-              inset 0 1px 0 rgba(255, 255, 255, .18);
+  box-shadow: 0 0 0 #131517, 0 1px 3px rgba(0, 0, 0, .5),
+              inset 0 1px 0 rgba(255, 255, 255, .06);
 }
-.key-cell.held .cap { background: linear-gradient(#9aa0a3, #6b7174); }
+.cap.held { background: linear-gradient(#4d5259, #3b4046); }
 
-.main {
-  position: absolute;
-  top: 3px; left: 5px;
-  font-size: 15px;
-  font-weight: 700;
-  color: #fff;
+.line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
   line-height: 1;
 }
+.line.mid { justify-content: center; }
+
+.main {
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: .01em;
+}
 .main-special {
-  position: static;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 0 3px;
-  font-size: 8px;
-  letter-spacing: .02em;
-  text-align: center;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: #e9eaea;
+  text-transform: uppercase;
+}
+.cap-special { justify-content: center; align-items: center; text-align: center; }
+.cap-special .line { justify-content: center; }
+
+.ss {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--red);
+  white-space: nowrap;
 }
 
 .kw {
-  position: absolute;
-  left: 0; right: 0; bottom: 4px;
+  font-size: 7.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: #cfd2d4;
+  white-space: nowrap;
+}
+
+.ext {
   font-size: 7px;
   font-weight: 600;
-  color: #fff;
-  text-align: center;
-  letter-spacing: .01em;
+  letter-spacing: .02em;
+  white-space: nowrap;
 }
+.ext.green { color: var(--green); }
+.ext.red   { color: var(--red); }
+.ext.white { color: #9aa0a4; }
 
-.ss {
-  position: absolute;
-  top: 3px; right: 4px;
-  font-size: 8px;
-  font-weight: 700;
-  color: var(--red);
-  line-height: 1;
-}
+.line.one { justify-content: center; }
+
+.cap { overflow: hidden; }
 
 .swatch {
-  position: absolute;
-  left: 5px; bottom: 5px;
-  width: 12px; height: 7px;
-  border: 1px solid rgba(0, 0, 0, .35);
+  align-self: center;
+  flex: none;
+  width: 11px; height: 6px;
+  border-radius: 1px;
+  border: 1px solid rgba(255, 255, 255, .2);
 }
 .swatch[data-colour="0"] { background: #000; }
 .swatch[data-colour="1"] { background: #0000d7; }

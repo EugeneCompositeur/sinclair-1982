@@ -1,11 +1,24 @@
-// The 40-key rubber keyboard: its picture, and the 8x5 matrix behind it.
+// The keyboard: a modern staggered layout carrying the Spectrum's five meanings
+// per key, over the machine's real 8x5 matrix.
 
 import { KEYS } from './rom-data.js';
 
-const ROW_LENGTH = 10;
 const byId = Object.fromEntries(KEYS.map(k => [k.id, k]));
 
-// Which physical PC key stands in for which Spectrum key.
+// Rows are laid out on a grid of quarter-key columns, 46 wide, so the stagger
+// and the wide keys land on exact fractions the way a real keyboard's do.
+const U = 4;
+const COLUMNS = 46;
+const WIDE = { ENTER: 7, CS: 7, SS: 7, SPACE: 22 };
+
+const LAYOUT = [
+  { pad: 0, keys: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] },
+  { pad: 2, keys: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'] },
+  { pad: 3, keys: ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'ENTER'] },
+  { pad: 0, keys: ['CS', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'SS'] },
+  { pad: 12, keys: ['SPACE'] },
+];
+
 const PC_KEYS = {
   Enter: 'ENTER', ' ': 'SPACE',
   ShiftLeft: 'CS', ShiftRight: 'CS',
@@ -17,18 +30,24 @@ export class Keyboard {
     this.el = el;
     this.onPress = onPress;
     this.nodes = new Map();
-    this.sticky = { CS: false, SS: false };   // click a shift, then click a key
+    this.sticky = { CS: false, SS: false };
     this.render();
     this.listen();
   }
 
   render() {
     const frag = document.createDocumentFragment();
-    for (let r = 0; r < KEYS.length; r += ROW_LENGTH) {
+    for (const { pad, keys } of LAYOUT) {
       const row = document.createElement('div');
       row.className = 'kbd-row';
-      for (const k of KEYS.slice(r, r + ROW_LENGTH)) {
-        row.appendChild(this.renderKey(k));
+      row.style.gridTemplateColumns = `repeat(${COLUMNS}, 1fr)`;
+      let col = 1 + pad;
+      for (const id of keys) {
+        const span = WIDE[id] || U;
+        const cap = this.renderKey(byId[id]);
+        cap.style.gridColumn = `${col} / span ${span}`;
+        row.appendChild(cap);
+        col += span;
       }
       frag.appendChild(row);
     }
@@ -36,57 +55,62 @@ export class Keyboard {
   }
 
   renderKey(k) {
-    const cell = document.createElement('div');
-    cell.className = 'key-cell';
-    cell.dataset.id = k.id;
-
-    const above = document.createElement('div');
-    above.className = 'legend above ' + (k.special || /^[0-9]$/.test(k.id) ? 'white' : 'green');
-    above.textContent = k.above || '';
-
     const cap = document.createElement('button');
-    cap.className = 'cap' + (k.special ? ' cap-special' : '');
     cap.type = 'button';
+    cap.className = 'cap' + (k.special ? ' cap-special' : '');
+    cap.dataset.id = k.id;
 
-    if (k.symbol) {
+    const line = cls => {
+      const d = document.createElement('div');
+      d.className = 'line ' + cls;
+      return d;
+    };
+    const bit = (cls, text) => {
       const s = document.createElement('span');
-      s.className = 'ss';
-      s.textContent = k.symbol;
-      cap.appendChild(s);
-    }
+      s.className = cls;
+      s.textContent = text;
+      return s;
+    };
+
+    const isLetter = /^[A-Z]$/.test(k.id);
+
+    const top = line('top');
+    top.appendChild(bit('main' + (k.special ? ' main-special' : ''), k.main));
     if (k.colour !== undefined) {
-      const c = document.createElement('span');
-      c.className = 'swatch';
-      c.dataset.colour = k.colour;
-      cap.appendChild(c);
+      const sw = bit('swatch', '');
+      sw.dataset.colour = k.colour;
+      top.appendChild(sw);
     }
-    const main = document.createElement('span');
-    main.className = 'main' + (k.special ? ' main-special' : '');
-    main.textContent = k.main;
-    cap.appendChild(main);
+    if (k.symbol) top.appendChild(bit('ss', k.symbol));
+    cap.appendChild(top);
 
-    if (k.keyword) {
-      const kw = document.createElement('span');
-      kw.className = 'kw';
-      kw.textContent = k.keyword;
-      cap.appendChild(kw);
+    // A letter's middle line is its one-key keyword; a digit's is what CAPS SHIFT
+    // does with it, which is too long to sit beside anything else.
+    const middle = isLetter ? k.keyword : k.above;
+    if (middle) {
+      const mid = line('mid');
+      mid.appendChild(bit(isLetter ? 'kw' : 'ext white', middle));
+      cap.appendChild(mid);
     }
 
-    const below = document.createElement('div');
-    below.className = 'legend below red';
-    below.textContent = k.below || '';
+    if (isLetter ? (k.above || k.below) : k.below) {
+      const bottom = line('bottom');
+      if (isLetter) bottom.appendChild(bit('ext green', k.above || ''));
+      bottom.appendChild(bit('ext red', k.below || ''));
+      if (!isLetter) bottom.classList.add('one');
+      cap.appendChild(bottom);
+    }
 
-    cell.append(above, cap, below);
-    this.nodes.set(k.id, cell);
-    return cell;
+    this.nodes.set(k.id, cap);
+    return cap;
   }
 
   listen() {
     this.el.addEventListener('pointerdown', e => {
-      const cell = e.target.closest('.key-cell');
-      if (!cell) return;
+      const cap = e.target.closest('.cap');
+      if (!cap) return;
       e.preventDefault();
-      this.press(cell.dataset.id);
+      this.press(cap.dataset.id);
     });
 
     addEventListener('keydown', e => {
@@ -111,7 +135,7 @@ export class Keyboard {
     return byId[k] ? k : null;
   }
 
-  // Clicking CAPS SHIFT or SYMBOL SHIFT latches it until the next key.
+  // Tapping a shift latches it until the next key, so one finger is enough.
   press(id) {
     if (id === 'CS' || id === 'SS') {
       this.sticky[id] = !this.sticky[id];
