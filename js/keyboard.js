@@ -14,10 +14,10 @@ const EXTRA = {
   CAPSLOCK:  { id: 'CAPSLOCK',  main: 'CAPS LOCK', hint: 'CS + 2', kind: 'util' },
   EXT:       { id: 'EXT',       main: 'E',         hint: 'MODE',   kind: 'util' },
   CS2:       { id: 'CS2',       main: 'CAPS SHIFT',                kind: 'mod' },
-  F1: { id: 'F1', main: 'RESET', kind: 'fn' },
-  F2: { id: 'F2', main: 'LOAD',  kind: 'fn' },
-  F3: { id: 'F3', main: 'STATE', kind: 'fn' },
-  F4: { id: 'F4', main: 'SPEED', kind: 'fn' },
+  F1: { id: 'F1', main: 'RESET',    kind: 'fn' },
+  F2: { id: 'F2', main: 'SAVE',     kind: 'fn' },
+  F3: { id: 'F3', main: 'LESSONS',  kind: 'fn' },
+  F4: { id: 'F4', main: 'SETTINGS', kind: 'fn' },
 };
 
 const key = id => spectrum[id] || EXTRA[id];

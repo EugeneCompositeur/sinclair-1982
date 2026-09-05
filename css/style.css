@@ -10,8 +10,8 @@
   --key-mid:    #2d3136;
   --key-low:    #24272b;
   --key-edge:   #121417;
-  --gap:        7px;
-  --row:        64px;
+  --gap:        5px;
+  --row:        43px;
   --enter-step: calc(var(--row) + var(--gap));
   --enter-h:    calc(var(--row) * 2 + var(--gap));
 }
@@ -20,7 +20,9 @@
 
 body {
   margin: 0;
-  padding: 40px 20px 72px;
+  height: 100vh;
+  overflow: hidden;
+  padding: 12px 14px 14px;
   background:
     radial-gradient(1200px 600px at 50% -10%, #1d2024, #0b0c0e 70%);
   color: var(--dim);
@@ -29,15 +31,27 @@ body {
   justify-content: center;
 }
 
-.desk { width: 100%; max-width: 900px; }
+.desk {
+  width: 100%;
+  max-width: 1180px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
 
 /* ---- the television ---- */
 
 .tv {
   position: relative;
+  flex: 1;
+  min-height: 0;
+  align-self: center;      /* the bezel hugs the picture instead of the window */
+  display: flex;
+  justify-content: center;
   background: linear-gradient(#141517, #0a0a0b 60%, #050506);
-  border-radius: 18px;
-  padding: 24px;
+  border-radius: 14px;
+  padding: 14px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .05),
     inset 0 0 70px rgba(0, 0, 0, .9),
@@ -46,8 +60,9 @@ body {
 
 #screen {
   display: block;
-  width: 100%;
-  height: auto;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
   image-rendering: pixelated;
   border-radius: 4px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, .8), 0 0 34px rgba(0, 0, 0, .55);
@@ -57,7 +72,7 @@ body {
 .tv::after {
   content: '';
   position: absolute;
-  inset: 24px;
+  inset: 14px;
   border-radius: 4px;
   pointer-events: none;
   background: linear-gradient(105deg,
@@ -70,10 +85,10 @@ body {
 
 .case {
   position: relative;
-  margin-top: 30px;
+  flex: none;
   background: linear-gradient(var(--case-top), var(--case) 34%, var(--case-edge));
   border-radius: 14px;
-  padding: 22px 22px 16px;
+  padding: 11px 12px 8px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .07),
     inset 0 0 0 1px rgba(255, 255, 255, .03),
@@ -111,9 +126,9 @@ body {
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
-  padding: 6px 5px 5px;
+  padding: 4px 5px 4px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: linear-gradient(var(--key-top), var(--key-mid) 52%, var(--key-low));
   box-shadow:
     0 2px 0 var(--key-edge),
@@ -129,14 +144,25 @@ body {
 .cap:hover { filter: brightness(1.16); }
 .cap:focus-visible { outline: 2px solid #6ab7ff; outline-offset: 2px; }
 
-.cap.down, .cap.held, .cap.latched {
+.cap.down {
   transform: translateY(2px);
   box-shadow:
     0 0 0 var(--key-edge),
     0 1px 3px rgba(0, 0, 0, .5),
     inset 0 1px 0 rgba(255, 255, 255, .06);
 }
-.cap.held, .cap.latched { filter: brightness(1.35); }
+
+/* A latched shift or mode key stays lit until its partner is struck. */
+.cap.held, .cap.latched {
+  transform: translateY(2px);
+  background-image: linear-gradient(#5c5327, #47401f 52%, #3a341a);
+  box-shadow:
+    0 0 0 1px rgba(215, 215, 0, .65),
+    0 0 16px rgba(215, 215, 0, .3),
+    inset 0 1px 0 rgba(255, 255, 255, .16);
+}
+.cap.held .main, .cap.latched .main,
+.cap.held .hint, .cap.latched .hint { color: #ffef7a; }
 
 /* Modifiers and our own additions sit a shade back from the Spectrum's own keys. */
 .cap[data-kind="mod"], .cap[data-kind="util"] {
@@ -162,7 +188,7 @@ body {
 .cap[data-kind="fn"]::after {
   content: '';
   position: absolute;
-  left: 22%; right: 22%; bottom: 9px;
+  left: 24%; right: 24%; bottom: 6px;
   height: 2px;
   border-radius: 1px;
   background: var(--accent);
@@ -188,7 +214,7 @@ body {
 
 .iso-lower, .iso-upper {
   position: absolute;
-  border-radius: 8px;
+  border-radius: 6px;
   background-image: linear-gradient(var(--key-top), var(--key-mid) 52%, var(--key-low));
   background-size: 100% var(--enter-h);
   box-shadow:
@@ -205,7 +231,7 @@ body {
   right: 0;
   width: 62.5%;
   top: calc(-1 * var(--enter-step));
-  height: calc(var(--enter-step) + 9px);
+  height: calc(var(--enter-step) + 7px);
   background-position: 0 0;
 }
 
@@ -222,27 +248,27 @@ body {
 .line.one { justify-content: center; }
 
 .main {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 600;
   color: #fff;
 }
 .main-plain {
-  font-size: 8.5px;
+  font-size: 7.5px;
   font-weight: 700;
   letter-spacing: .07em;
   color: #dfe2e4;
 }
-.cap[data-id="EXT"] .main-plain { font-size: 15px; letter-spacing: 0; }
+.cap[data-id="EXT"] .main-plain { font-size: 13px; letter-spacing: 0; }
 
 .ss {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   color: var(--red);
   white-space: nowrap;
 }
 
 .kw {
-  font-size: 7.5px;
+  font-size: 7px;
   font-weight: 600;
   letter-spacing: .03em;
   color: #c6cacd;
@@ -250,7 +276,7 @@ body {
 }
 
 .hint {
-  font-size: 6.5px;
+  font-size: 6px;
   font-weight: 600;
   letter-spacing: .09em;
   color: #6d7378;
@@ -258,7 +284,7 @@ body {
 }
 
 .ext {
-  font-size: 6.5px;
+  font-size: 6px;
   font-weight: 600;
   letter-spacing: 0;
   white-space: nowrap;
@@ -270,7 +296,7 @@ body {
 .swatch {
   align-self: center;
   flex: none;
-  width: 11px; height: 6px;
+  width: 10px; height: 5px;
   border-radius: 1px;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22);
 }
@@ -289,20 +315,20 @@ body {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 11px;
-  margin-top: 18px;
+  gap: 8px;
+  margin-top: 7px;
   padding-right: 2px;
 }
 
 .rainbow { display: flex; gap: 2px; transform: skewX(-20deg); }
-.rainbow i { width: 7px; height: 21px; border-radius: 1px; }
+.rainbow i { width: 5px; height: 15px; border-radius: 1px; }
 .rainbow i:nth-child(1) { background: #d70000; }
 .rainbow i:nth-child(2) { background: #d7d700; }
 .rainbow i:nth-child(3) { background: #00d700; }
 .rainbow i:nth-child(4) { background: #00d7d7; }
 
 .wordmark {
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: .04em;
   color: #e6e8e9;
