@@ -12,6 +12,8 @@
   --key-edge:   #121417;
   --gap:        7px;
   --row:        64px;
+  --enter-step: calc(var(--row) + var(--gap));
+  --enter-h:    calc(var(--row) * 2 + var(--gap));
 }
 
 * { box-sizing: border-box; }
@@ -172,8 +174,40 @@ body {
 
 .cap[data-id="SPACE"] { justify-content: center; align-items: center; }
 .cap[data-id="SPACE"] .line { justify-content: center; }
-.cap[data-id="ENTER"] { justify-content: center; align-items: center; }
-.cap[data-id="ENTER"] .line { justify-content: center; }
+/* ENTER is L-shaped: a wide lower half, and a narrower upper half reaching up
+   beside P. Both halves carry the same gradient, aligned to the whole key. */
+.cap[data-id="ENTER"] {
+  justify-content: center;
+  align-items: center;
+  overflow: visible;
+  background: none;
+  box-shadow: none;
+  filter: drop-shadow(0 2px 0 var(--key-edge)) drop-shadow(0 4px 7px rgba(0, 0, 0, .45));
+}
+.cap[data-id="ENTER"] .line { justify-content: center; position: relative; z-index: 2; }
+
+.iso-lower, .iso-upper {
+  position: absolute;
+  border-radius: 8px;
+  background-image: linear-gradient(var(--key-top), var(--key-mid) 52%, var(--key-low));
+  background-size: 100% var(--enter-h);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .11),
+    inset 0 -1px 0 rgba(0, 0, 0, .35);
+}
+.iso-lower {
+  inset: 0;
+  background-position: 0 calc(-1 * var(--enter-step));
+}
+.iso-upper {
+  /* No bottom edge: it would draw a dark line straight across the join. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .11);
+  right: 0;
+  width: 62.5%;
+  top: calc(-1 * var(--enter-step));
+  height: calc(var(--enter-step) + 9px);
+  background-position: 0 0;
+}
 .cap[data-id="EXT"] { padding: 6px 2px; }
 
 .line {

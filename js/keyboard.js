@@ -26,14 +26,14 @@ const key = id => spectrum[id] || EXTRA[id];
 const COLUMNS = 49;
 const U = 4;
 const SPAN = {
-  BACKSPACE: 9, EXT: 3, ENTER: 6, CAPSLOCK: 7,
+  BACKSPACE: 9, EXT: 4, ENTER: 8, CAPSLOCK: 5,
   CS: 8, SS: 7, CS2: 6, SPACE: 25, F1: 6, F2: 6, F3: 6, F4: 6,
 };
 
 const LAYOUT = [
   ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'BACKSPACE'],
-  ['EXT', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', 'ENTER'],
-  ['CAPSLOCK', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+  ['EXT', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+  ['CAPSLOCK', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'ENTER'],
   ['CS', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'SS', 'CS2'],
   ['F1', 'F2', 'SPACE', 'F3', 'F4'],
 ];
@@ -66,8 +66,7 @@ export class Keyboard {
         const span = SPAN[id] || U;
         const cap = this.renderKey(key(id));
         cap.style.gridColumn = `${col} / span ${span}`;
-        // ENTER stands over both letter rows, the way a full-size keyboard's does.
-        cap.style.gridRow = id === 'ENTER' ? `${r + 1} / span 2` : `${r + 1}`;
+        cap.style.gridRow = `${r + 1}`;
         this.el.appendChild(cap);
         col += span;
       }
@@ -129,6 +128,14 @@ export class Keyboard {
       else bottom.classList.add('one');
       bottom.appendChild(bit('ext red', k.below || ''));
       cap.appendChild(bottom);
+    }
+
+    if (k.id === 'ENTER') {
+      for (const part of ['iso-lower', 'iso-upper']) {
+        const d = document.createElement('span');
+        d.className = part;
+        cap.appendChild(d);
+      }
     }
 
     if (k.id === 'SPACE') {
