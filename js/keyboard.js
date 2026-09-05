@@ -15,7 +15,7 @@ const EXTRA = {
   EXT:       { id: 'EXT',       main: 'E',         hint: 'MODE',   kind: 'util' },
   CS2:       { id: 'CS2',       main: 'CAPS SHIFT',                kind: 'mod' },
   F1: { id: 'F1', main: 'RESET',    kind: 'fn' },
-  F2: { id: 'F2', main: 'SAVE',     kind: 'fn' },
+  F2: { id: 'F2', main: 'TAPE',     kind: 'fn' },
   F3: { id: 'F3', main: 'LESSONS',  kind: 'fn' },
   F4: { id: 'F4', main: 'SETTINGS', kind: 'fn' },
 };
@@ -60,8 +60,9 @@ const PC_KEYS = {
 
 const SHIFTS = { CS: 'CS', CS2: 'CS', SS: 'SS' };
 
-// One frame is 20 ms; anything shorter than a couple of scans can be missed.
-const MIN_HOLD_MS = 45;
+// One frame is 20 ms, and the ROM only believes a key it has seen in two
+// scans running, so a tap has to last longer than that.
+const MIN_HOLD_MS = 80;
 
 export class Keyboard {
   constructor(el, machine, onAction = () => {}) {
