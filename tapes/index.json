@@ -1,0 +1,23 @@
+[
+  {
+    "file": "gumshoe.tap",
+    "name": "GUMSHOE",
+    "blocks": 2,
+    "bytes": 6083,
+    "note": "The same case in English, on a map of the city."
+  },
+  {
+    "file": "hello.tap",
+    "name": "HELLO",
+    "blocks": 2,
+    "bytes": 154,
+    "note": "Три строки, с которых всё началось."
+  },
+  {
+    "file": "syshchik.tap",
+    "name": "SYSHCHIK",
+    "blocks": 4,
+    "bytes": 7679,
+    "note": "Ночная улица, пять дверей и вор за одной из них. По-русски."
+  }
+]

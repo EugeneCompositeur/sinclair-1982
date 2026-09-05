@@ -7,6 +7,11 @@ import { Keyboard } from './keyboard.js';
 import { Spectrum, FRAME_MS, T_PER_FRAME } from './machine.js';
 import { Beeper } from './beeper.js';
 import { Tape } from './tape.js';
+import { Panel } from './panel.js';
+
+const remember = (key, value) => { try { localStorage.setItem(key, value); } catch {} };
+const recall = (key, fallback) => { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } };
+const wait = ms => new Promise(done => setTimeout(done, ms));
 
 const load = async path => {
   const response = await fetch(new URL(path, import.meta.url));
@@ -29,9 +34,33 @@ if (tapeBytes) machine.insert(new Tape(tapeBytes, tapeName));
 
 const keyboard = new Keyboard(document.getElementById('keyboard'), machine, action => {
   if (action === 'F1') { machine.reset(); keyboard.releaseAll(); if (machine.tape) machine.tape.rewind(); }
-  if (action === 'F2' && machine.tape) machine.tape.rewind();
-  // LESSONS and SETTINGS are still waiting to be given a job.
+  if (action === 'F2') panel.toggle('tapes');
+  if (action === 'F3') panel.toggle('lessons');
+  if (action === 'F4') panel.toggle('settings');
 });
+
+// The theme is remembered between visits.
+document.documentElement.dataset.theme = recall('theme', 'dark');
+
+const panel = new Panel(document.getElementById('panel'), {
+  onResize: () => fit(),
+  theme: () => document.documentElement.dataset.theme,
+  setTheme: value => { document.documentElement.dataset.theme = value; remember('theme', value); },
+  sound: () => !beeper.muted,
+  setSound: on => { beeper.muted = !on; remember('sound', on ? 'on' : 'off'); if (on) beeper.start(); },
+  insertTape: async file => {
+    const bytes = await load(`../tapes/${file}`);
+    if (bytes) machine.insert(new Tape(bytes, file));
+  },
+  autoLoad: async () => {
+    machine.reset();
+    keyboard.releaseAll();
+    if (machine.tape) machine.tape.rewind();
+    await wait(1600);                       // let the ROM finish its own start-up
+    await keyboard.type([['J'], ['SS', 'P'], ['SS', 'P'], ['ENTER']]);
+  },
+});
+beeper.muted = recall('sound', 'on') === 'off';
 
 // Sound may not start until the user has touched something.
 const wake = () => { beeper.start(); removeEventListener('pointerdown', wake); removeEventListener('keydown', wake); };

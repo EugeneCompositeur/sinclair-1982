@@ -1,0 +1,195 @@
+// The panel beside the machine: the shelf of tapes, the list of commands, and
+// the settings. It opens from the keys along the bottom of the keyboard.
+
+import { KEYS } from './rom-data.js';
+import { COMMANDS, GROUPS } from './commands.js';
+
+// Which keys produce which word — worked out from the ROM's own tables rather
+// than written down by hand.
+const KEYSTROKE = {};
+for (const k of KEYS) {
+  const letter = /^[A-Z]$/.test(k.id);
+  if (k.keyword) KEYSTROKE[k.keyword] = k.id;
+  if (k.symbol && k.symbol.length > 1) KEYSTROKE[k.symbol] = `SYMBOL SHIFT + ${k.id}`;
+  if (letter && k.above) KEYSTROKE[k.above] = `E, затем ${k.id}`;
+  if (letter && k.below && k.below.length > 1) KEYSTROKE[k.below] = `E, затем SYMBOL SHIFT + ${k.id}`;
+  if (!letter && !k.special && k.below) KEYSTROKE[k.below] = `E, затем SYMBOL SHIFT + ${k.id}`;
+}
+// The comparison signs sit on keys whose symbol is the sign itself.
+for (const k of KEYS) if (k.symbol && '<=,>=,<>'.includes(k.symbol) && k.symbol.length === 2) {
+  KEYSTROKE[k.symbol] = `SYMBOL SHIFT + ${k.id}`;
+}
+
+const el = (tag, className, text) => {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+};
+
+export class Panel {
+  constructor(root, actions) {
+    this.root = root;
+    this.actions = actions;               // { insertTape, autoLoad, setTheme, theme, setSound, sound }
+    this.view = null;
+    this.tapes = null;
+
+    this.title = root.querySelector('.panel-title');
+    this.body = root.querySelector('.panel-body');
+    root.querySelector('.panel-close').addEventListener('click', () => this.close());
+  }
+
+  get open() { return !this.root.hidden; }
+
+  toggle(view) {
+    if (this.open && this.view === view) return this.close();
+    this.show(view);
+  }
+
+  close() {
+    this.root.hidden = true;
+    this.view = null;
+    this.actions.onResize?.();
+  }
+
+  show(view) {
+    this.view = view;
+    this.root.hidden = false;
+    this.body.replaceChildren();
+    if (view === 'tapes') { this.title.textContent = 'Полка с лентами'; this.renderTapes(); }
+    if (view === 'lessons') { this.title.textContent = 'Все команды бейсика'; this.renderLessons(); }
+    if (view === 'settings') { this.title.textContent = 'Настройки'; this.renderSettings(); }
+    this.body.scrollTop = 0;
+    this.actions.onResize?.();
+  }
+
+  // ---- the shelf ----
+
+  async renderTapes() {
+    this.body.appendChild(el('p', 'panel-note',
+      'Всё, что лежит на полке. Вставь ленту и набери LOAD "" — или нажми «загрузить», и машина сделает это сама.'));
+
+    if (!this.tapes) {
+      const loading = el('p', 'panel-note', 'Смотрю, что на полке…');
+      this.body.appendChild(loading);
+      try {
+        const response = await fetch(new URL('../tapes/index.json', import.meta.url));
+        this.tapes = await response.json();
+      } catch { this.tapes = []; }
+      loading.remove();
+      if (this.view !== 'tapes') return;
+    }
+
+    if (!this.tapes.length) {
+      this.body.appendChild(el('p', 'panel-note', 'Полка пуста.'));
+      return;
+    }
+
+    for (const tape of this.tapes) {
+      const card = el('div', 'card');
+      const head = el('div', 'card-head');
+      head.append(el('span', 'card-name', tape.name), el('span', 'card-key', `${Math.round(tape.bytes / 1024 * 10) / 10} КБ`));
+      card.appendChild(head);
+      if (tape.note) card.appendChild(el('p', 'card-text', tape.note));
+
+      const row = el('div', 'card-buttons');
+      const insert = el('button', 'button', 'вставить');
+      insert.addEventListener('click', async () => {
+        await this.actions.insertTape(tape.file);
+        insert.textContent = 'вставлена';
+        setTimeout(() => { insert.textContent = 'вставить'; }, 1400);
+      });
+      const play = el('button', 'button button-strong', 'загрузить');
+      play.addEventListener('click', async () => {
+        play.disabled = true;
+        play.textContent = 'загружаю…';
+        await this.actions.insertTape(tape.file);
+        await this.actions.autoLoad();
+        play.disabled = false;
+        play.textContent = 'загрузить';
+        this.close();
+      });
+      row.append(insert, play);
+      card.appendChild(row);
+      this.body.appendChild(card);
+    }
+  }
+
+  // ---- every command in the language ----
+
+  renderLessons() {
+    const search = el('input', 'search');
+    search.type = 'search';
+    search.placeholder = 'найти команду…';
+    this.body.appendChild(search);
+
+    this.body.appendChild(el('p', 'panel-note',
+      'Каждое слово бейсика набирается одной клавишей, а не по буквам. Здесь написано, какой именно.'));
+
+    const list = el('div', 'lessons');
+    this.body.appendChild(list);
+
+    const cards = [];
+    for (const [group, names] of GROUPS) {
+      const section = el('section', 'group');
+      section.appendChild(el('h3', 'group-title', group));
+      for (const name of names) {
+        const command = COMMANDS[name];
+        if (!command) continue;
+        const card = el('div', 'card');
+        const head = el('div', 'card-head');
+        head.append(el('span', 'card-name', name), el('span', 'card-key', KEYSTROKE[name] || ''));
+        card.append(head, el('p', 'card-text', command.what), el('p', 'card-how', command.how));
+        const example = el('pre', 'card-example', command.example);
+        card.appendChild(example);
+        section.appendChild(card);
+        cards.push({ card, section, hay: (name + ' ' + command.what + ' ' + command.how).toLowerCase() });
+      }
+      list.appendChild(section);
+    }
+
+    search.addEventListener('input', () => {
+      const needle = search.value.trim().toLowerCase();
+      const shown = new Set();
+      for (const { card, section, hay } of cards) {
+        const hit = !needle || hay.includes(needle);
+        card.hidden = !hit;
+        if (hit) shown.add(section);
+      }
+      for (const section of list.children) section.hidden = !shown.has(section);
+    });
+  }
+
+  // ---- settings ----
+
+  renderSettings() {
+    this.body.appendChild(this.choice('Тема', [
+      ['dark', 'Тёмная', 'Машина стоит в темноте, как ночью на столе.'],
+      ['light', 'Светлая', 'Экран разливается на всю страницу, края обозначены тонкой линией.'],
+    ], this.actions.theme(), value => this.actions.setTheme(value)));
+
+    this.body.appendChild(this.choice('Звук', [
+      ['on', 'Включён', 'Бипер работает — тот самый единственный бит.'],
+      ['off', 'Выключен', 'Тишина.'],
+    ], this.actions.sound() ? 'on' : 'off', value => this.actions.setSound(value === 'on')));
+
+    this.body.appendChild(el('p', 'panel-note',
+      'Выбранное запоминается в этом браузере.'));
+  }
+
+  choice(title, options, current, onPick) {
+    const section = el('section', 'group');
+    section.appendChild(el('h3', 'group-title', title));
+    for (const [value, label, note] of options) {
+      const card = el('button', 'card card-choice' + (value === current ? ' chosen' : ''));
+      card.append(el('span', 'card-name', label), el('p', 'card-text', note));
+      card.addEventListener('click', () => {
+        onPick(value);
+        for (const other of section.querySelectorAll('.card-choice')) other.classList.remove('chosen');
+        card.classList.add('chosen');
+      });
+      section.appendChild(card);
+    }
+    return section;
+  }
+}

@@ -4,21 +4,32 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sinclair ZX Spectrum 48K</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23111'/%3E%3Crect x='2' y='11' width='3' height='3' fill='%23d70000'/%3E%3Crect x='5' y='11' width='3' height='3' fill='%23d7d700'/%3E%3Crect x='8' y='11' width='3' height='3' fill='%2300d700'/%3E%3Crect x='11' y='11' width='3' height='3' fill='%2300d7d7'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <main class="desk">
-    <div class="tv">
-      <canvas id="screen"></canvas>
-    </div>
+  <main class="stage">
+    <div class="desk">
+      <div class="tv">
+        <canvas id="screen"></canvas>
+      </div>
 
-    <div class="case">
-      <div id="keyboard" class="keyboard"></div>
-      <div class="brand">
-        <div class="rainbow"><i></i><i></i><i></i><i></i></div>
-        <div class="wordmark">ZX<span>Spectrum</span></div>
+      <div class="case">
+        <div id="keyboard" class="keyboard"></div>
+        <div class="brand">
+          <div class="rainbow"><i></i><i></i><i></i><i></i></div>
+          <div class="wordmark">ZX<span>Spectrum</span></div>
+        </div>
       </div>
     </div>
+
+    <aside class="panel" id="panel" hidden>
+      <header class="panel-head">
+        <h2 class="panel-title">Панель</h2>
+        <button class="panel-close" type="button" aria-label="Закрыть">✕</button>
+      </header>
+      <div class="panel-body"></div>
+    </aside>
   </main>
   <script type="module" src="js/main.js"></script>
 </body>

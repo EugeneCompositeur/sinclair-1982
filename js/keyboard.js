@@ -270,6 +270,18 @@ export class Keyboard {
     if (held >= MIN_HOLD_MS) release(); else setTimeout(release, MIN_HOLD_MS - held);
   }
 
+  // Types a sequence of key presses into the machine, holding each one long
+  // enough for the ROM to notice — the way a finger would.
+  async type(sequence, hold = 100, gap = 140) {
+    const wait = ms => new Promise(done => setTimeout(done, ms));
+    for (const combo of sequence) {
+      for (const id of combo) { this.matrix(id, true); this.paint(id, true, 'down'); }
+      await wait(hold);
+      for (const id of combo) { this.matrix(id, false); this.paint(id, false, 'down'); }
+      await wait(gap);
+    }
+  }
+
   releaseAll() {
     this.machine.releaseAllKeys();
     this.latched.CS = this.latched.SS = false;
