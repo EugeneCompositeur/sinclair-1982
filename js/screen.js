@@ -35,13 +35,15 @@ export const attr = (ink, paper, bright = 0, flash = 0) =>
   (flash ? 0x80 : 0) | (bright ? 0x40 : 0) | ((paper & 7) << 3) | (ink & 7);
 
 export class Display {
-  constructor(canvas) {
+  constructor(canvas, memory = null, base = 0) {
     this.canvas = canvas;
     canvas.width = WIDTH + BORDER_X * 2;
     canvas.height = HEIGHT + BORDER_Y * 2;
     this.ctx = canvas.getContext('2d', { alpha: false });
     this.image = this.ctx.createImageData(canvas.width, canvas.height);
-    this.mem = new Uint8Array(6912);   // 6144 bytes of pixels, then 768 of attributes
+    // Either a private buffer, or a window straight onto the machine's RAM at
+    // $4000 — 6144 bytes of pixels followed by 768 of attributes.
+    this.mem = memory ? memory.subarray(base, base + 6912) : new Uint8Array(6912);
     this.border = 7;
     this.flashPhase = false;
     this.frame = 0;

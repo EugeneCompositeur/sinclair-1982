@@ -42,6 +42,14 @@ const LAYOUT = [
   ['F1', 'F2', 'SPACE', 'F3', 'F4'],
 ];
 
+// Our own keys stand for combinations the original needed two hands for.
+const COMBO = {
+  EDIT:      ['CS', '1'],
+  CAPSLOCK:  ['CS', '2'],
+  BACKSPACE: ['CS', '0'],
+  EXT:       ['CS', 'SS'],
+};
+
 const PC_KEYS = {
   Enter: 'ENTER', ' ': 'SPACE', Backspace: 'BACKSPACE', Tab: 'EXT',
   CapsLock: 'CAPSLOCK', Escape: 'EDIT',
@@ -52,12 +60,17 @@ const PC_KEYS = {
 
 const SHIFTS = { CS: 'CS', CS2: 'CS', SS: 'SS' };
 
+// One frame is 20 ms; anything shorter than a couple of scans can be missed.
+const MIN_HOLD_MS = 45;
+
 export class Keyboard {
-  constructor(el, onPress) {
+  constructor(el, machine, onAction = () => {}) {
     this.el = el;
-    this.onPress = onPress;
+    this.machine = machine;
+    this.onAction = onAction;
     this.nodes = new Map();
-    this.sticky = { CS: false, SS: false };
+    this.latched = { CS: false, SS: false };
+    this.pressedAt = new Map();
     this.render();
     this.listen();
   }
@@ -157,21 +170,32 @@ export class Keyboard {
       const cap = e.target.closest('.cap');
       if (!cap) return;
       e.preventDefault();
-      this.press(cap.dataset.id);
+      cap.setPointerCapture(e.pointerId);
+      this.down(cap.dataset.id, true);
+    });
+    this.el.addEventListener('pointerup', e => {
+      const cap = e.target.closest('.cap');
+      if (cap) this.up(cap.dataset.id, true);
+    });
+    this.el.addEventListener('pointercancel', e => {
+      const cap = e.target.closest('.cap');
+      if (cap) this.up(cap.dataset.id, true);
     });
 
     addEventListener('keydown', e => {
       const id = this.translate(e);
-      if (!id) return;
+      if (!id || e.repeat) return;
       e.preventDefault();
-      if (SHIFTS[id]) { this.hold(id, true); return; }
-      this.onPress(id, { CS: e.shiftKey, SS: e.ctrlKey || e.altKey });
-      this.flash(id);
+      this.down(id, false);
     });
     addEventListener('keyup', e => {
       const id = this.translate(e);
-      if (id && SHIFTS[id]) this.hold(id, false);
+      if (!id) return;
+      e.preventDefault();
+      this.up(id, false);
     });
+    // A window that loses focus must not leave a key stuck down.
+    addEventListener('blur', () => this.releaseAll());
   }
 
   translate(e) {
@@ -181,43 +205,73 @@ export class Keyboard {
     return spectrum[k] ? k : null;
   }
 
-  // Tapping a shift latches it until the next key, so one finger is enough.
-  press(id) {
+  // ---- the matrix ------------------------------------------------------
+
+  matrix(id, down) {
+    const k = spectrum[id];
+    if (!k || !k.matrix) return;
+    this.machine.setKey(k.matrix[0], k.matrix[1], down);
+  }
+
+  paint(id, on, cls) {
+    const n = this.nodes.get(id);
+    if (n) n.classList.toggle(cls, on);
+  }
+
+  shift(which, on) {
+    this.latched[which] = on;
+    this.matrix(which, on);
+    for (const [id, w] of Object.entries(SHIFTS)) if (w === which) this.paint(id, on, 'held');
+  }
+
+  down(id, byPointer) {
+    if (id.startsWith('F') && id.length === 2) { this.onAction(id); this.paint(id, true, 'down'); return; }
+
+    // A shift tapped with a finger latches; a shift held on a real keyboard
+    // simply stays down.
     if (SHIFTS[id]) {
       const which = SHIFTS[id];
-      this.sticky[which] = !this.sticky[which];
-      this.markShift(which);
+      this.shift(which, byPointer ? !this.latched[which] : true);
       return;
     }
-    const mods = { ...this.sticky };
-    this.sticky.CS = this.sticky.SS = false;
-    this.markShift('CS'); this.markShift('SS');
-    this.onPress(id, mods);
-    this.flash(id);
-  }
 
-  hold(id, down) {
-    this.sticky[SHIFTS[id]] = down;
-    this.markShift(SHIFTS[id]);
-  }
-
-  markShift(which) {
-    for (const [id, w] of Object.entries(SHIFTS)) {
-      if (w !== which) continue;
-      const n = this.nodes.get(id);
-      if (n) n.classList.toggle('held', this.sticky[which]);
+    this.paint(id, true, 'down');
+    this.pressedAt.set(id, performance.now());
+    const parts = COMBO[id];
+    if (parts) {
+      for (const part of parts) this.matrix(part, true);
+      if (id === 'CAPSLOCK' || id === 'EXT') this.paint(id, true, 'latched');
+    } else {
+      this.matrix(id, true);
     }
   }
 
-  setLatch(id, on) {
-    const n = this.nodes.get(id);
-    if (n) n.classList.toggle('latched', on);
+  up(id, byPointer) {
+    if (id.startsWith('F') && id.length === 2) { this.paint(id, false, 'down'); return; }
+    if (SHIFTS[id]) {
+      if (!byPointer) this.shift(SHIFTS[id], false);
+      return;
+    }
+
+    this.paint(id, false, 'down');
+
+    // The machine only looks at the keyboard fifty times a second, so a tap
+    // shorter than a frame would go unnoticed. Hold it down long enough to
+    // be seen, then let go.
+    const held = performance.now() - (this.pressedAt.get(id) ?? 0);
+    const release = () => {
+      const parts = COMBO[id];
+      if (parts) for (const part of parts) { if (!this.latched[SHIFTS[part]]) this.matrix(part, false); }
+      else this.matrix(id, false);
+      for (const which of ['CS', 'SS']) if (this.latched[which]) this.shift(which, false);
+      if (parts) this.paint(id, false, 'latched');
+    };
+    if (held >= MIN_HOLD_MS) release(); else setTimeout(release, MIN_HOLD_MS - held);
   }
 
-  flash(id) {
-    const n = this.nodes.get(id);
-    if (!n) return;
-    n.classList.add('down');
-    setTimeout(() => n.classList.remove('down'), 90);
+  releaseAll() {
+    this.machine.releaseAllKeys();
+    this.latched.CS = this.latched.SS = false;
+    for (const n of this.nodes.values()) n.classList.remove('down', 'held', 'latched');
   }
 }
