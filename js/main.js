@@ -23,7 +23,7 @@ const beeper = new Beeper();
 
 // A tape is in the machine from the start, so LOAD "" has something to find.
 // ?tape=name puts a different one in.
-const tapeName = new URLSearchParams(location.search).get('tape') || 'gumshoe';
+const tapeName = new URLSearchParams(location.search).get('tape') || 'syshchik';
 const tapeBytes = await load(`../tapes/${tapeName}.tap`);
 if (tapeBytes) machine.insert(new Tape(tapeBytes, tapeName));
 
@@ -39,6 +39,49 @@ addEventListener('pointerdown', wake);
 addEventListener('keydown', wake);
 
 globalThis.spectrum = machine;
+
+// A pixel must stay square and a character cell exactly eight by eight, so the
+// picture is only ever shown at a whole multiple of its own 320x240. Rather
+// than shrink it to whatever is left over, we let the keyboard give way: its
+// rows flatten by a few points so the screen can take the next whole step up.
+const screen = document.getElementById('screen');
+const desk = document.querySelector('.desk');
+const tv = document.querySelector('.tv');
+const machineCase = document.querySelector('.case');
+
+const KEY_ROWS = 5, ROW_MIN = 34, ROW_MAX = 48;
+const pad = (el, ...names) => names.reduce((t, n) => t + parseFloat(getComputedStyle(el)[n] || 0), 0);
+const rowNow = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--row'));
+
+// Everything in the case that is not key rows: padding, gaps, the wordmark.
+const caseExtra = machineCase.offsetHeight - KEY_ROWS * rowNow();
+
+function fit() {
+  const padX = pad(tv, 'paddingLeft', 'paddingRight');
+  const padY = pad(tv, 'paddingTop', 'paddingBottom');
+  const gap = parseFloat(getComputedStyle(desk).gap) || 0;
+  const room = { w: desk.clientWidth - padX, h: desk.clientHeight - padY - gap - caseExtra };
+
+  let scale = 0, row = ROW_MIN;
+  for (let s = 6; s >= 1; s--) {
+    if (screen.width * s > room.w) continue;
+    const spare = (room.h - screen.height * s) / KEY_ROWS;
+    if (spare >= ROW_MIN) { scale = s; row = Math.min(ROW_MAX, Math.floor(spare)); break; }
+  }
+  // Only if not even one pixel per pixel will fit do we scale by a fraction —
+  // and even then the four-to-three ratio is kept exactly.
+  if (!scale) {
+    scale = Math.min(room.w / screen.width, (room.h - KEY_ROWS * ROW_MIN) / screen.height);
+    row = ROW_MIN;
+  }
+
+  document.documentElement.style.setProperty('--row', row + 'px');
+  screen.style.width = Math.round(screen.width * scale) + 'px';
+  screen.style.height = Math.round(screen.height * scale) + 'px';
+}
+
+fit();
+addEventListener('resize', fit);
 
 // The browser hands us a frame roughly every 16 ms; the Spectrum wants one
 // every 20. Keep the remainder and spend it next time, but never try to catch

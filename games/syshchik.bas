@@ -1,0 +1,169 @@
+   1 REM СЫЩИК
+   2 REM ночное дежурство
+   3 CLEAR 59199
+   5 GO SUB 9000
+  10 GO SUB 8000
+  20 GO SUB 7000
+  30 GO SUB 5000
+  40 LET k$=INKEY$
+  50 IF k$="" THEN GO TO 40
+  60 IF k$<>" " THEN GO TO 70
+  62 GO SUB 6000
+  64 IF INKEY$<>"" THEN GO TO 64
+  66 GO TO 40
+  70 LET nx=dx: LET ny=dy
+  80 IF k$="q" OR k$="Q" THEN LET ny=dy-1
+  90 IF k$="a" OR k$="A" THEN LET ny=dy+1
+ 100 IF k$="o" OR k$="O" THEN LET nx=dx-1
+ 110 IF k$="p" OR k$="P" THEN LET nx=dx+1
+ 120 IF nx<1 OR nx>13 OR ny<1 OR ny>8 THEN GO TO 40
+ 130 IF nx=dx AND ny=dy THEN GO TO 40
+ 140 GO SUB 5600
+ 150 LET dx=nx: LET dy=ny: LET st=st-1
+ 160 GO SUB 5500
+ 170 BEEP .008,30: BEEP .008,24
+ 180 GO SUB 5800
+ 190 IF st>0 THEN GO TO 40
+ 200 GO TO 4000
+1000 REM ---- взят ----
+1010 FOR i=1 TO 9
+1020 PRINT AT 2+(dy-1)*2,(dx-1)*2+1;INK 6;FLASH 1;CHR$ 145
+1030 BEEP .04,i*2
+1040 PRINT AT 2+(dy-1)*2,(dx-1)*2+1;INK 2;FLASH 0;CHR$ 145
+1050 BEEP .04,i*2+7
+1060 NEXT i
+1070 LET m$="ВЗЯТ С ПОЛИЧНЫМ."
+1080 GO SUB 5800
+1090 FOR i=1 TO 8: READ p: BEEP .12,p: NEXT i
+1100 GO TO 4100
+4000 REM ---- ночь кончилась ----
+4010 PRINT AT 2+(ty-1)*2,(tx-1)*2+1;INK 2;FLASH 1;CHR$ 145
+4020 LET m$="УШЕЛ В ТУМАН."
+4030 GO SUB 5800
+4040 PRINT AT 21,1;INK 2;"ОН БЫЛ В МИГАЮЩЕМ ДОМЕ."
+4050 FOR i=1 TO 6: BEEP .15,10-i*2: NEXT i
+4100 PRINT AT 19,0;INK 5;FLASH 1;" НАЖМИ КЛАВИШУ - НОВОЕ ДЕЛО "
+4110 PAUSE 0
+4120 RESTORE 9500: GO TO 10
+5000 REM ---- рисуем город ----
+5010 BORDER 0: PAPER 0: INK 6: CLS
+5020 PRINT AT 0,0;INK 5;"СЫЩИК";AT 0,16;INK 4;"НОЧНОЕ ДЕЖУРСТВО"
+5030 FOR x=0 TO 31: PRINT AT 1,x;INK 1;CHR$ 131: NEXT x
+5040 FOR i=1 TO 6
+5050 PRINT AT 2+(c(i)-1)*2,(b(i)-1)*2+1;INK 6;CHR$ 146
+5060 NEXT i
+5070 FOR i=1 TO 4
+5080 PRINT AT 2+(v(i)-1)*2,(l(i)-1)*2+1;INK 5;CHR$ 147
+5090 NEXT i
+5100 PRINT AT 19,0;INK 4;" O P Q A ХОДИТЬ  ПРОБЕЛ ОБЫСК"
+5110 GO SUB 5500
+5120 GO SUB 5800
+5130 RETURN
+5500 REM ---- ставим сыщика ----
+5510 PRINT AT 2+(dy-1)*2,(dx-1)*2+1;INK 7;CHR$ 144
+5520 RETURN
+5600 REM ---- убираем его ----
+5610 LET e$=" ": LET g=7
+5620 FOR i=1 TO 6
+5630 IF b(i)=dx AND c(i)=dy THEN LET e$=CHR$ 146: LET g=6: IF s(i)=1 THEN LET e$=CHR$ 149: LET g=2
+5640 NEXT i
+5650 FOR i=1 TO 4
+5660 IF l(i)=dx AND v(i)=dy THEN LET e$=CHR$ 147: LET g=5
+5670 NEXT i
+5680 IF e$=" " THEN LET e$=CHR$ 148: LET g=1
+5690 PRINT AT 2+(dy-1)*2,(dx-1)*2+1;INK g;e$
+5700 RETURN
+5800 REM ---- слово с улицы ----
+5810 PRINT AT 20,0;"                                "
+5820 PRINT AT 20,0;INK 6;m$
+5830 PRINT AT 21,1;INK 6;"ШАГИ ";INK 5;st;INK 6;"   "
+5840 RETURN
+6000 REM ---- обыск дома ----
+6010 LET f=0
+6020 FOR i=1 TO 6
+6030 IF b(i)=dx AND c(i)=dy THEN LET f=i
+6040 NEXT i
+6050 IF f>0 THEN GO TO 6070
+6060 LET m$="ЗДЕСЬ ТОЛЬКО ТУМАН.": BEEP .1,-10: GO SUB 5800: RETURN
+6070 IF f=th THEN GO TO 1000
+6080 LET s(f)=1
+6090 LET d=ABS (b(f)-tx)+ABS (c(f)-ty)
+6100 LET m$="СЛЕД ОСТЫЛ."
+6110 IF d<9 THEN LET m$="ЗДЕСЬ КТО-ТО ПРОБЕГАЛ."
+6120 IF d<5 THEN LET m$="ПАЛЬТО ЕЩЕ НЕ ОСТЫЛО."
+6130 IF d<3 THEN LET m$="ОН НА ЭТОЙ УЛИЦЕ!"
+6140 LET st=st-2
+6150 BEEP .05,0: BEEP .05,14-d
+6160 GO SUB 5800
+6170 RETURN
+7000 REM ---- новое дело ----
+7005 BORDER 0: PAPER 0: INK 5: CLS: PRINT AT 10,4;FLASH 1;"ГОТОВИМ НОЧНОЕ ДЕЖУРСТВО"
+7010 DIM b(6): DIM c(6): DIM s(6): DIM l(4): DIM v(4)
+7020 FOR i=1 TO 6
+7030 LET b(i)=1+INT (RND*13): LET c(i)=1+INT (RND*8)
+7040 LET f=0
+7050 FOR j=1 TO 6
+7060 IF j<i AND b(j)=b(i) AND c(j)=c(i) THEN LET f=1
+7070 NEXT j
+7080 IF f=1 THEN GO TO 7030
+7090 NEXT i
+7100 FOR i=1 TO 4
+7110 LET l(i)=1+INT (RND*13): LET v(i)=1+INT (RND*8)
+7120 LET f=0
+7130 FOR j=1 TO 6
+7140 IF b(j)=l(i) AND c(j)=v(i) THEN LET f=1
+7150 NEXT j
+7160 IF f=1 THEN GO TO 7110
+7170 NEXT i
+7180 LET th=1+INT (RND*6)
+7190 LET tx=b(th): LET ty=c(th)
+7200 LET dx=7: LET dy=8
+7210 LET f=0
+7220 FOR i=1 TO 6
+7230 IF b(i)=dx AND c(i)=dy THEN LET f=1
+7240 NEXT i
+7250 IF f=1 THEN LET dx=1+INT (RND*13): LET dy=1+INT (RND*8): GO TO 7210
+7260 LET st=44: LET m$="ВОР ГДЕ-ТО ЗДЕСЬ."
+7270 RETURN
+8000 REM ---- заставка ----
+8010 BORDER 0: PAPER 0: INK 7: CLS
+8020 FOR i=0 TO 7
+8030 PRINT AT 2,4+i*3;PAPER i;"   "
+8040 NEXT i
+8050 PRINT AT 5,10;INK 6;"С Ы Щ И К"
+8060 PRINT AT 7,8;INK 5;"НОЧНОЕ ДЕЖУРСТВО"
+8070 FOR i=0 TO 7
+8080 PRINT AT 9,4+i*3;PAPER 7-i;"   "
+8090 NEXT i
+8100 PRINT AT 12,1;INK 7;"ВОР ПРЯЧЕТСЯ В ОДНОМ ИЗ ШЕСТИ"
+8110 PRINT AT 13,1;INK 7;"ДОМОВ НА НОЧНОЙ УЛИЦЕ."
+8120 PRINT AT 15,1;INK 4;"ХОДИ КЛАВИШАМИ   O P Q A"
+8130 PRINT AT 16,1;INK 4;"ОБЫСК ДОМА       ПРОБЕЛ"
+8140 PRINT AT 18,1;INK 6;"КАЖДЫЙ ОБЫСК СТОИТ ШАГОВ,"
+8150 PRINT AT 19,1;INK 6;"А НОЧЬ НЕ БЕСКОНЕЧНА."
+8160 PRINT AT 21,6;INK 5;FLASH 1;"НАЖМИ ЛЮБУЮ КЛАВИШУ"
+8170 FOR i=1 TO 6: READ p: BEEP .1,p: NEXT i
+8180 PAUSE 0
+8190 RETURN
+9000 REM ---- шрифт и рисунки ----
+9005 RESTORE 9300
+9010 FOR n=0 TO 11: READ z: POKE 59200+n,z: NEXT n
+9015 RANDOMIZE USR 59200
+9020 RESTORE 9600
+9025 FOR n=0 TO 255: READ z: POKE 59904+n,z: NEXT n
+9030 POKE 23606,0: POKE 23607,231
+9035 RESTORE 9100
+9040 FOR n=0 TO 47: READ z: POKE USR "a"+n,z: NEXT n
+9045 RESTORE 9500
+9050 RETURN
+9100 DATA 60,126,24,60,126,60,36,66
+9110 DATA 24,60,126,56,124,56,72,132
+9120 DATA 126,255,219,255,219,255,255,231
+9130 DATA 60,126,60,24,24,24,24,60
+9140 DATA 0,24,60,60,24,0,0,0
+9150 DATA 126,255,255,255,255,255,255,231
+9300 REM переносим шрифт из ПЗУ в ОЗУ: LD HL,15616 / LD DE,59392 / LD BC,768 / LDIR / RET
+9310 DATA 33,0,61,17,0,232,1,0,3,237,176,201
+9500 DATA 0,4,7,12,7,12
+9510 DATA 12,16,19,24,19,24,26,31
+#include cyrillic.bas

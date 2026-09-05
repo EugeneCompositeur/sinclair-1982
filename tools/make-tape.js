@@ -7,7 +7,8 @@
 //   node tools/make-tape.js games/gumshoe.bas tapes/gumshoe.tap GUMSHOE 10
 
 import { readFileSync, writeFileSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
+import { dirname, resolve } from 'path';
+import { ALPHABET } from './make-cyrillic.js';
 
 const rom = new Uint8Array(readFileSync(new URL('../roms/48.rom', import.meta.url)));
 
@@ -27,6 +28,14 @@ tokens.sort((a, b) => b[0].length - a[0].length);
 const REM = 234;
 
 const isWordChar = c => c !== undefined && /[A-Za-z0-9]/.test(c);
+
+// Russian letters are written plainly in the source and land on codes 96..127,
+// where the program's own character set puts them.
+const CYRILLIC = new Map(ALPHABET.split('').map((letter, i) => [letter, 96 + i]));
+function zxCode(ch) {
+  const upper = ch.toUpperCase() === 'Ё' ? 'Е' : ch.toUpperCase();
+  return CYRILLIC.get(upper) ?? (ch.charCodeAt(0) & 255);
+}
 
 // The five bytes the interpreter actually reads when it meets a number.
 // Whole numbers that fit in sixteen bits get the short form; everything else
@@ -48,6 +57,7 @@ export function encodeNumber(v) {
   return [(e + 128) & 255, ...bytes];
 }
 
+// Lines are sorted by number so an #included block can sit anywhere.
 export function tokenizeLine(text) {
   const out = [];
   let i = 0;
@@ -55,7 +65,7 @@ export function tokenizeLine(text) {
     if (text[i] === '"') {                         // strings pass through untouched
       out.push(34); i++;
       while (i < text.length) {
-        out.push(text.charCodeAt(i));
+        out.push(zxCode(text[i]));
         const wasQuote = text[i] === '"';
         i++;
         if (wasQuote) break;
@@ -75,7 +85,7 @@ export function tokenizeLine(text) {
       out.push(hit[1]);
       i += hit[0].length;
       if (hit[1] === REM) {                        // a remark is text, not code
-        for (; i < text.length; i++) out.push(text.charCodeAt(i));
+        for (; i < text.length; i++) out.push(zxCode(text[i]));
       }
       continue;
     }
@@ -88,21 +98,41 @@ export function tokenizeLine(text) {
       continue;
     }
 
-    out.push(text.charCodeAt(i) & 255);
+    out.push(zxCode(text[i]));
     i++;
   }
   return out;
 }
 
-export function assemble(source) {
-  const program = [];
+// #include pulls in another listing — the character set lives in its own file.
+function expand(source, base) {
+  const lines = [];
   for (const raw of source.split('\n')) {
+    const included = /^\s*#include\s+(\S+)\s*$/.exec(raw);
+    if (included) {
+      const path = resolve(base, included[1]);
+      lines.push(...expand(readFileSync(path, 'utf8'), dirname(path)));
+    } else {
+      lines.push(raw);
+    }
+  }
+  return lines;
+}
+
+export function assemble(source, base = '.') {
+  const numbered = [];
+  for (const raw of expand(source, base)) {
     const line = raw.replace(/\r$/, '');
     if (!line.trim() || line.trimStart().startsWith('#')) continue;
     const m = /^\s*(\d+)\s?(.*)$/.exec(line);
     if (!m) throw new Error(`line without a number: ${line}`);
-    const number = Number(m[1]);
-    const body = tokenizeLine(m[2]);
+    numbered.push([Number(m[1]), m[2]]);
+  }
+  numbered.sort((a, b) => a[0] - b[0]);
+
+  const program = [];
+  for (const [number, text] of numbered) {
+    const body = tokenizeLine(text);
     body.push(0x0d);
     program.push((number >> 8) & 255, number & 255, body.length & 255, (body.length >> 8) & 255, ...body);
   }
@@ -131,7 +161,7 @@ export function makeTape(program, name, autostart) {
 
 const [, , input, output, name = 'PROGRAM', autostart] = process.argv;
 if (input) {
-  const program = assemble(readFileSync(input, 'utf8'));
+  const program = assemble(readFileSync(input, 'utf8'), dirname(input));
   const tape = makeTape(program, name, autostart === undefined ? undefined : Number(autostart));
   mkdirSync(dirname(output), { recursive: true });
   writeFileSync(output, tape);
