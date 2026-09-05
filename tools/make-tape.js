@@ -146,6 +146,19 @@ const block = bytes => {
   return Uint8Array.from([body.length & 255, (body.length >> 8) & 255, ...body]);
 };
 
+// A CODE block: a lump of memory with an address to put it back at.
+export function makeCode(bytes, name, address) {
+  const title = (name + '          ').slice(0, 10);
+  const header = [
+    0x00, 0x03,                                       // header, CODE
+    ...[...title].map(c => c.charCodeAt(0)),
+    bytes.length & 255, (bytes.length >> 8) & 255,
+    address & 255, (address >> 8) & 255,              // where it belongs
+    0x00, 0x80,
+  ];
+  return Uint8Array.from([...block(header), ...block([0xff, ...bytes])]);
+}
+
 export function makeTape(program, name, autostart) {
   const title = (name + '          ').slice(0, 10);
   const start = autostart === undefined ? 32768 : autostart;
@@ -159,12 +172,18 @@ export function makeTape(program, name, autostart) {
   return Uint8Array.from([...block(header), ...block([0xff, ...program])]);
 }
 
-const [, , input, output, name = 'PROGRAM', autostart] = process.argv;
+const [, , input, output, name = 'PROGRAM', autostart, codeFile, codeAddr] = process.argv;
 if (input) {
   const program = assemble(readFileSync(input, 'utf8'), dirname(input));
-  const tape = makeTape(program, name, autostart === undefined ? undefined : Number(autostart));
+  let tape = makeTape(program, name, autostart === undefined ? undefined : Number(autostart));
+  let extra = '';
+  if (codeFile) {
+    const bytes = new Uint8Array(readFileSync(codeFile));
+    tape = Uint8Array.from([...tape, ...makeCode(bytes, name, Number(codeAddr))]);
+    extra = `, plus ${bytes.length} bytes of code for ${codeAddr}`;
+  }
   mkdirSync(dirname(output), { recursive: true });
   writeFileSync(output, tape);
   console.log(`${output}: ${program.length} bytes of BASIC, ${tape.length} bytes of tape` +
-    (autostart === undefined ? '' : `, runs from line ${autostart}`));
+    (autostart === undefined ? '' : `, runs from line ${autostart}`) + extra);
 }
