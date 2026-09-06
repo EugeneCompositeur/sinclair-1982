@@ -56,7 +56,7 @@ const panel = new Panel(document.getElementById('panel'), {
     machine.reset();
     keyboard.releaseAll();
     if (machine.tape) machine.tape.rewind();
-    await wait(1600);                       // let the ROM finish its own start-up
+    await keyboard.waitFrames(90);          // let the ROM finish its own start-up
     await keyboard.type([['J'], ['SS', 'P'], ['SS', 'P'], ['ENTER']]);
   },
 });
@@ -124,6 +124,7 @@ function tick(now) {
   const perFrame = Math.round(beeper.sampleRate * T_PER_FRAME / 3500000);
   while (owed >= FRAME_MS) {
     machine.runFrame();
+    keyboard.tick();
     display.tick();
     if (beeper.ready) {
       const samples = new Float32Array(perFrame);

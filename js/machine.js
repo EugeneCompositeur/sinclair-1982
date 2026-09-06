@@ -20,6 +20,7 @@ export class Spectrum {
     this.rom = rom;
     this.keys = new Uint8Array(8);      // a set bit means the key is up
     this.tape = null;
+    this.frames = 0;                    // how many television frames have run
     this.speakerEvents = [];
     this.cpu = new Z80(this);
     this.reset();
@@ -78,6 +79,7 @@ export class Spectrum {
   // worth of cycles is spent.
   runFrame() {
     const cpu = this.cpu;
+    this.frames++;
     this.frameStart = cpu.tstates;
     this.speakerEvents.length = 0;
     this.speakerLevelAtStart = this.speaker;

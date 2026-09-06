@@ -60,9 +60,12 @@ const PC_KEYS = {
 
 const SHIFTS = { CS: 'CS', CS2: 'CS', SS: 'SS' };
 
-// One frame is 20 ms, and the ROM only believes a key it has seen in two
-// scans running, so a tap has to last longer than that.
-const MIN_HOLD_MS = 80;
+// The ROM only believes a key it has seen in two scans running, so a tap has
+// to last several frames. Counted in the machine's own frames, not in the
+// browser's milliseconds: if the browser stops to think — starting the sound
+// card, say — the machine stops with it, and a tap measured by the clock would
+// pass by unseen.
+const MIN_HOLD_FRAMES = 5;
 
 export class Keyboard {
   constructor(el, machine, onAction = () => {}) {
@@ -72,6 +75,7 @@ export class Keyboard {
     this.nodes = new Map();
     this.latched = { CS: false, SS: false };
     this.pressedAt = new Map();
+    this.pending = [];
     this.render();
     this.listen();
   }
@@ -237,7 +241,7 @@ export class Keyboard {
     }
 
     this.paint(id, true, 'down');
-    this.pressedAt.set(id, performance.now());
+    this.pressedAt.set(id, this.machine.frames);
     const parts = COMBO[id];
     if (parts) {
       for (const part of parts) this.matrix(part, true);
@@ -256,10 +260,9 @@ export class Keyboard {
 
     this.paint(id, false, 'down');
 
-    // The machine only looks at the keyboard fifty times a second, so a tap
-    // shorter than a frame would go unnoticed. Hold it down long enough to
-    // be seen, then let go.
-    const held = performance.now() - (this.pressedAt.get(id) ?? 0);
+    // The machine only looks at the keyboard fifty times a second, so hold the
+    // key down for a few of its frames before letting go.
+    const held = this.machine.frames - (this.pressedAt.get(id) ?? 0);
     const release = () => {
       const parts = COMBO[id];
       if (parts) for (const part of parts) { if (!this.latched[SHIFTS[part]]) this.matrix(part, false); }
@@ -267,23 +270,37 @@ export class Keyboard {
       for (const which of ['CS', 'SS']) if (this.latched[which]) this.shift(which, false);
       if (parts) this.paint(id, false, 'latched');
     };
-    if (held >= MIN_HOLD_MS) release(); else setTimeout(release, MIN_HOLD_MS - held);
+    if (held >= MIN_HOLD_FRAMES) release(); else this.after(MIN_HOLD_FRAMES - held, release);
+  }
+
+  // Work to do once the machine has run so many more frames. Driven by tick(),
+  // which the main loop calls after every frame.
+  after(frames, run) { this.pending.push({ at: this.machine.frames + frames, run }); }
+  waitFrames(frames) { return new Promise(done => this.after(frames, done)); }
+
+  tick() {
+    if (!this.pending.length) return;
+    const now = this.machine.frames;
+    const due = this.pending.filter(job => now >= job.at);
+    if (!due.length) return;
+    this.pending = this.pending.filter(job => now < job.at);
+    for (const job of due) job.run();
   }
 
   // Types a sequence of key presses into the machine, holding each one long
   // enough for the ROM to notice — the way a finger would.
-  async type(sequence, hold = 100, gap = 140) {
-    const wait = ms => new Promise(done => setTimeout(done, ms));
+  async type(sequence, hold = MIN_HOLD_FRAMES, gap = 7) {
     for (const combo of sequence) {
       for (const id of combo) { this.matrix(id, true); this.paint(id, true, 'down'); }
-      await wait(hold);
+      await this.waitFrames(hold);
       for (const id of combo) { this.matrix(id, false); this.paint(id, false, 'down'); }
-      await wait(gap);
+      await this.waitFrames(gap);
     }
   }
 
   releaseAll() {
     this.machine.releaseAllKeys();
+    this.pending.length = 0;
     this.latched.CS = this.latched.SS = false;
     for (const n of this.nodes.values()) n.classList.remove('down', 'held', 'latched');
   }
