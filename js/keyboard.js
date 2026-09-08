@@ -18,10 +18,9 @@ const EXTRA = {
   DOWN:      { id: 'DOWN',      main: '\u2193',    hint: 'CS + 6', kind: 'util' },
   UP:        { id: 'UP',        main: '\u2191',    hint: 'CS + 7', kind: 'util' },
   RIGHT:     { id: 'RIGHT',     main: '\u2192',    hint: 'CS + 8', kind: 'util' },
-  F1: { id: 'F1', main: 'RESET',    kind: 'fn' },
-  F2: { id: 'F2', main: 'TAPE',     kind: 'fn' },
-  F3: { id: 'F3', main: 'LESSONS',  kind: 'fn' },
-  F4: { id: 'F4', main: 'SETTINGS', kind: 'fn' },
+  F2: { id: 'F2', main: 'ЛЕНТЫ',    kind: 'fn' },
+  F3: { id: 'F3', main: 'УРОКИ',    kind: 'fn' },
+  F4: { id: 'F4', main: 'НАСТРОЙКИ', kind: 'fn' },
 };
 
 const key = id => spectrum[id] || EXTRA[id];
@@ -35,8 +34,8 @@ const COLUMNS = 51;
 const U = 4;
 const SPAN = {
   EDIT: 4, BACKSPACE: 7, EXT: 6, ENTER: 8, CAPSLOCK: 7,
-  CS: 8, SS: 7, CS2: 4, SPACE: 19,
-  F1: 5, F2: 5, F3: 5, F4: 5,
+  CS: 8, SS: 7, CS2: 4, SPACE: 24,
+  F2: 5, F3: 5, F4: 5,
   LEFT: 4, DOWN: 4, UP: 4, RIGHT: 4,
 };
 
@@ -47,7 +46,7 @@ const LAYOUT = [
   ['EXT', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
   ['CAPSLOCK', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'ENTER'],
   ['CS', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'SS', 'UP', 'CS2'],
-  ['F1', 'F2', 'SPACE', 'F3', 'F4', 'LEFT', 'DOWN', 'RIGHT'],
+  ['F2', 'SPACE', 'F3', 'F4', 'LEFT', 'DOWN', 'RIGHT'],
 ];
 
 // Our own keys stand for combinations the original needed two hands for.
@@ -65,10 +64,10 @@ const COMBO = {
 const PC_KEYS = {
   Enter: 'ENTER', ' ': 'SPACE', Backspace: 'BACKSPACE', Tab: 'EXT',
   CapsLock: 'CAPSLOCK', Escape: 'EDIT',
+  F2: 'F2', F3: 'F3', F4: 'F4',
   ArrowLeft: 'LEFT', ArrowDown: 'DOWN', ArrowUp: 'UP', ArrowRight: 'RIGHT',
   ShiftLeft: 'CS', ShiftRight: 'CS2',
   ControlLeft: 'SS', ControlRight: 'SS', AltLeft: 'SS', AltRight: 'SS',
-  F1: 'F1', F2: 'F2', F3: 'F3', F4: 'F4',
 };
 
 const SHIFTS = { CS: 'CS', CS2: 'CS', SS: 'SS' };

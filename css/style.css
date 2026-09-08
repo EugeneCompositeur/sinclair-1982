@@ -488,6 +488,59 @@ body {
   }
 }
 
+/* ---- the lessons ---- */
+
+.panel-link {
+  display: inline-block;
+  margin-bottom: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--panel-dim);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.panel-link:hover { color: var(--panel-ink); }
+
+.lesson-text {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  line-height: 1.62;
+  color: var(--panel-ink);
+}
+
+.lesson-note {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--panel-dim);
+  border-radius: 0 8px 8px 0;
+  background: var(--panel-card);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--panel-dim);
+}
+
+.lesson-task {
+  margin: 4px 0 14px;
+  padding: 10px 12px;
+  border: 1px dashed var(--panel-line);
+  border-radius: 9px;
+}
+.lesson-task-title {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--panel-dim);
+}
+.lesson-task .lesson-text { margin: 0; }
+
+.listing { margin: 0 0 16px; }
+.listing .card-example { margin-top: 0; }
+
 /* ---- a word from the machine ---- */
 
 .toast {

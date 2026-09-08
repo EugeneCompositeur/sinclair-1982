@@ -4,6 +4,7 @@
 import { KEYS } from './rom-data.js';
 import { COMMANDS, GROUPS } from './commands.js';
 import { saved, forget, download } from './library.js';
+import { LESSONS } from './lessons.js';
 
 // Which keys produce which word — worked out from the ROM's own tables rather
 // than written down by hand.
@@ -42,8 +43,10 @@ export class Panel {
 
   get open() { return !this.root.hidden; }
 
+  // The lessons, one lesson and the reference are all the same drawer.
   toggle(view) {
-    if (this.open && this.view === view) return this.close();
+    const family = v => (v && (v.startsWith('lesson') || v === 'commands')) ? 'lessons' : v;
+    if (this.open && family(this.view) === family(view)) return this.close();
     this.show(view);
   }
 
@@ -58,10 +61,92 @@ export class Panel {
     this.root.hidden = false;
     this.body.replaceChildren();
     if (view === 'tapes') { this.title.textContent = 'Полка с лентами'; this.renderTapes(); }
-    if (view === 'lessons') { this.title.textContent = 'Все команды бейсика'; this.renderLessons(); }
-    if (view === 'settings') { this.title.textContent = 'Настройки'; this.renderSettings(); }
+    else if (view === 'lessons') { this.title.textContent = 'Уроки'; this.renderLessonList(); }
+    else if (view.startsWith('lesson:')) this.renderLesson(view.slice(7));
+    else if (view === 'commands') { this.title.textContent = 'Все команды бейсика'; this.renderCommands(); }
+    else if (view === 'settings') { this.title.textContent = 'Настройки'; this.renderSettings(); }
     this.body.scrollTop = 0;
     this.actions.onResize?.();
+  }
+
+  // ---- the lessons ----
+
+  renderLessonList() {
+    this.body.appendChild(el('p', 'panel-note',
+      'По порядку, от первой строчки до устройства машины. У каждого примера есть кнопка — ' +
+      'программа сама окажется в машине, и её можно запускать и ломать.'));
+
+    LESSONS.forEach((lesson, i) => {
+      const card = el('button', 'card card-choice');
+      const head = el('div', 'card-head');
+      head.append(el('span', 'card-name', lesson.title), el('span', 'card-key', `${i + 1}`));
+      card.append(head, el('p', 'card-text', lesson.about));
+      card.addEventListener('click', () => this.show(`lesson:${lesson.id}`));
+      this.body.appendChild(card);
+    });
+
+    const reference = el('button', 'card card-choice');
+    reference.append(el('span', 'card-name', 'Все команды бейсика'),
+      el('p', 'card-text', 'Справочник: девяносто одна команда, что делает и какой клавишей набирается.'));
+    reference.addEventListener('click', () => this.show('commands'));
+    this.body.appendChild(reference);
+  }
+
+  renderLesson(id) {
+    const index = LESSONS.findIndex(l => l.id === id);
+    const lesson = LESSONS[index];
+    if (!lesson) return this.show('lessons');
+    this.title.textContent = lesson.title;
+
+    this.body.appendChild(this.link('\u2190 ко всем урокам', () => this.show('lessons')));
+
+    for (const part of lesson.parts) {
+      if (part.p) this.body.appendChild(el('p', 'lesson-text', part.p));
+      if (part.note) this.body.appendChild(el('p', 'lesson-note', part.note));
+      if (part.task) {
+        const task = el('div', 'lesson-task');
+        task.append(el('span', 'lesson-task-title', 'Попробуй сам'), el('p', 'lesson-text', part.task));
+        this.body.appendChild(task);
+      }
+      if (part.code) this.body.appendChild(this.listing(part.code));
+    }
+
+    const feet = el('div', 'card-buttons');
+    if (index > 0) feet.appendChild(this.button('\u2190 назад', () => this.show(`lesson:${LESSONS[index - 1].id}`)));
+    if (index < LESSONS.length - 1) {
+      feet.appendChild(this.button(`дальше: ${LESSONS[index + 1].title} \u2192`,
+        () => this.show(`lesson:${LESSONS[index + 1].id}`), true));
+    }
+    this.body.appendChild(feet);
+  }
+
+  listing(lines) {
+    const wrap = el('div', 'listing');
+    wrap.appendChild(el('pre', 'card-example', lines.join('\n')));
+    const row = el('div', 'card-buttons');
+    const put = this.button('вписать в машину', async () => {
+      put.disabled = true;
+      const was = put.textContent;
+      put.textContent = 'вписываю…';
+      await this.actions.loadListing(lines);
+      put.textContent = was;
+      put.disabled = false;
+    }, true);
+    row.appendChild(put);
+    wrap.appendChild(row);
+    return wrap;
+  }
+
+  button(text, onClick, strong = false) {
+    const b = el('button', 'button' + (strong ? ' button-strong' : ''), text);
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  link(text, onClick) {
+    const b = el('button', 'panel-link', text);
+    b.addEventListener('click', onClick);
+    return b;
   }
 
   // ---- the shelf ----
@@ -172,7 +257,7 @@ export class Panel {
 
   // ---- every command in the language ----
 
-  renderLessons() {
+  renderCommands() {
     const search = el('input', 'search');
     search.type = 'search';
     search.placeholder = 'найти команду…';
@@ -180,6 +265,8 @@ export class Panel {
 
     this.body.appendChild(el('p', 'panel-note',
       'Каждое слово бейсика набирается одной клавишей, а не по буквам. Здесь написано, какой именно.'));
+
+    this.body.appendChild(this.link('\u2190 к урокам', () => this.show('lessons')));
 
     const list = el('div', 'lessons');
     this.body.appendChild(list);
@@ -227,6 +314,23 @@ export class Panel {
       ['on', 'Включён', 'Бипер работает — тот самый единственный бит.'],
       ['off', 'Выключен', 'Тишина.'],
     ], this.actions.sound() ? 'on' : 'off', value => this.actions.setSound(value === 'on')));
+
+    const section = el('section', 'group');
+    section.appendChild(el('h3', 'group-title', 'Машина'));
+    const restart = el('button', 'card card-choice');
+    restart.append(el('span', 'card-name', 'Перезапустить'),
+      el('p', 'card-text', 'Как выдернуть питание и включить снова. Всё, что не сохранено на ленту, пропадёт.'));
+    restart.addEventListener('click', () => {
+      if (restart.dataset.sure) { this.actions.restart(); this.close(); return; }
+      restart.dataset.sure = '1';
+      restart.querySelector('.card-name').textContent = 'Точно перезапустить?';
+      setTimeout(() => {
+        delete restart.dataset.sure;
+        restart.querySelector('.card-name').textContent = 'Перезапустить';
+      }, 4000);
+    });
+    section.appendChild(restart);
+    this.body.appendChild(section);
 
     this.body.appendChild(el('p', 'panel-note',
       'Выбранное запоминается в этом браузере.'));

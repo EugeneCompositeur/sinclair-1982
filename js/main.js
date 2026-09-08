@@ -9,6 +9,8 @@ import { Beeper } from './beeper.js';
 import { Tape } from './tape.js';
 import { Panel } from './panel.js';
 import { keep, wrapBlocks, describe } from './library.js';
+import { typing } from './typing.js';
+import { basic } from './basic.js';
 
 const remember = (key, value) => { try { localStorage.setItem(key, value); } catch {} };
 const recall = (key, fallback) => { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } };
@@ -24,6 +26,7 @@ const rom = await load('../roms/48.rom');
 if (!rom || rom.length !== 16384) throw new Error('the 48K ROM is missing or the wrong size');
 
 const machine = new Spectrum(rom);
+const { assemble, makeTape } = basic(rom);
 const display = new Display(document.getElementById('screen'), machine.memory, 0x4000);
 const beeper = new Beeper();
 
@@ -34,7 +37,6 @@ const tapeBytes = await load(`../tapes/${tapeName}.tap`);
 if (tapeBytes) machine.insert(new Tape(tapeBytes, tapeName));
 
 const keyboard = new Keyboard(document.getElementById('keyboard'), machine, action => {
-  if (action === 'F1') { machine.reset(); keyboard.releaseAll(); if (machine.tape) machine.tape.rewind(); }
   if (action === 'F2') panel.toggle('tapes');
   if (action === 'F3') panel.toggle('lessons');
   if (action === 'F4') panel.toggle('settings');
@@ -47,6 +49,8 @@ const panel = new Panel(document.getElementById('panel'), {
   onResize: () => fit(),
   theme: () => document.documentElement.dataset.theme,
   setTheme: value => { document.documentElement.dataset.theme = value; remember('theme', value); },
+  typeText: async lines => { await keyboard.type(typing(lines)); },
+  restart: () => { machine.reset(); keyboard.releaseAll(); if (machine.tape) machine.tape.rewind(); say('машина перезапущена'); },
   sound: () => !beeper.muted,
   setSound: on => { beeper.muted = !on; remember('sound', on ? 'on' : 'off'); if (on) beeper.start(); },
   insertTape: async file => {
@@ -62,15 +66,26 @@ const panel = new Panel(document.getElementById('panel'), {
     machine.insert(new Tape(bytes, name));
     say(`взята лента: ${name}`);
   },
-  autoLoad: async () => {
-    machine.reset();
-    keyboard.releaseAll();
-    if (machine.tape) machine.tape.rewind();
-    await keyboard.waitFrames(90);          // let the ROM finish its own start-up
-    await keyboard.type([['J'], ['SS', 'P'], ['SS', 'P'], ['ENTER']]);
+  autoLoad,
+  // A listing from a lesson. Whole programs arrive on a tape — instantly, and
+  // on a clean machine; a single command is simply typed in.
+  loadListing: async lines => {
+    const program = assemble(lines);
+    if (!program.length) { await keyboard.type(typing(lines)); return; }
+    machine.insert(new Tape(makeTape(program, 'УРОК'), 'урок'));
+    await autoLoad();
+    say('вписано — набери RUN');
   },
 });
 beeper.muted = recall('sound', 'on') === 'off';
+
+async function autoLoad() {
+  machine.reset();
+  keyboard.releaseAll();
+  if (machine.tape) machine.tape.rewind();
+  await keyboard.waitFrames(90);            // let the ROM finish its own start-up
+  await keyboard.type([['J'], ['SS', 'P'], ['SS', 'P'], ['ENTER']]);
+}
 
 // Sound may not start until the user has touched something.
 const wake = () => { beeper.start(); removeEventListener('pointerdown', wake); removeEventListener('keydown', wake); };
@@ -101,6 +116,7 @@ function say(text) {
 
 globalThis.spectrum = machine;
 globalThis.keyboard = keyboard;
+globalThis.typeText = lines => keyboard.type(typing(lines));
 
 // A pixel must stay square and a character cell exactly eight by eight, so the
 // picture is only ever shown at a whole multiple of its own 320x240. Rather
