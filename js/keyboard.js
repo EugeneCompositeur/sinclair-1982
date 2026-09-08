@@ -13,7 +13,11 @@ const EXTRA = {
   BACKSPACE: { id: 'BACKSPACE', main: 'BACKSPACE', hint: 'CS + 0', kind: 'util' },
   CAPSLOCK:  { id: 'CAPSLOCK',  main: 'CAPS LOCK', hint: 'CS + 2', kind: 'util' },
   EXT:       { id: 'EXT',       main: 'E',         hint: 'MODE',   kind: 'util' },
-  CS2:       { id: 'CS2',       main: 'CAPS SHIFT',                kind: 'mod' },
+  CS2:       { id: 'CS2',       main: '\u21e7',    hint: 'CAPS',   kind: 'mod' },
+  LEFT:      { id: 'LEFT',      main: '\u2190',    hint: 'CS + 5', kind: 'util' },
+  DOWN:      { id: 'DOWN',      main: '\u2193',    hint: 'CS + 6', kind: 'util' },
+  UP:        { id: 'UP',        main: '\u2191',    hint: 'CS + 7', kind: 'util' },
+  RIGHT:     { id: 'RIGHT',     main: '\u2192',    hint: 'CS + 8', kind: 'util' },
   F1: { id: 'F1', main: 'RESET',    kind: 'fn' },
   F2: { id: 'F2', main: 'TAPE',     kind: 'fn' },
   F3: { id: 'F3', main: 'LESSONS',  kind: 'fn' },
@@ -31,15 +35,19 @@ const COLUMNS = 51;
 const U = 4;
 const SPAN = {
   EDIT: 4, BACKSPACE: 7, EXT: 6, ENTER: 8, CAPSLOCK: 7,
-  CS: 9, SS: 7, CS2: 7, SPACE: 27, F1: 6, F2: 6, F3: 6, F4: 6,
+  CS: 8, SS: 7, CS2: 4, SPACE: 19,
+  F1: 5, F2: 5, F3: 5, F4: 5,
+  LEFT: 4, DOWN: 4, UP: 4, RIGHT: 4,
 };
 
+// The arrows make an upright T at the bottom right: UP sits directly over
+// DOWN, exactly as it does on a real keyboard.
 const LAYOUT = [
   ['EDIT', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'BACKSPACE'],
   ['EXT', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
   ['CAPSLOCK', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'ENTER'],
-  ['CS', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'SS', 'CS2'],
-  ['F1', 'F2', 'SPACE', 'F3', 'F4'],
+  ['CS', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'SS', 'UP', 'CS2'],
+  ['F1', 'F2', 'SPACE', 'F3', 'F4', 'LEFT', 'DOWN', 'RIGHT'],
 ];
 
 // Our own keys stand for combinations the original needed two hands for.
@@ -48,11 +56,16 @@ const COMBO = {
   CAPSLOCK:  ['CS', '2'],
   BACKSPACE: ['CS', '0'],
   EXT:       ['CS', 'SS'],
+  LEFT:      ['CS', '5'],
+  DOWN:      ['CS', '6'],
+  UP:        ['CS', '7'],
+  RIGHT:     ['CS', '8'],
 };
 
 const PC_KEYS = {
   Enter: 'ENTER', ' ': 'SPACE', Backspace: 'BACKSPACE', Tab: 'EXT',
   CapsLock: 'CAPSLOCK', Escape: 'EDIT',
+  ArrowLeft: 'LEFT', ArrowDown: 'DOWN', ArrowUp: 'UP', ArrowRight: 'RIGHT',
   ShiftLeft: 'CS', ShiftRight: 'CS2',
   ControlLeft: 'SS', ControlRight: 'SS', AltLeft: 'SS', AltRight: 'SS',
   F1: 'F1', F2: 'F2', F3: 'F3', F4: 'F4',
@@ -291,9 +304,14 @@ export class Keyboard {
   // enough for the ROM to notice — the way a finger would.
   async type(sequence, hold = MIN_HOLD_FRAMES, gap = 7) {
     for (const combo of sequence) {
-      for (const id of combo) { this.matrix(id, true); this.paint(id, true, 'down'); }
+      // A key of ours stands for a combination; the matrix only knows the
+      // machine's own forty.
+      const parts = combo.flatMap(id => COMBO[id] ?? [id]);
+      for (const id of combo) this.paint(id, true, 'down');
+      for (const id of parts) this.matrix(id, true);
       await this.waitFrames(hold);
-      for (const id of combo) { this.matrix(id, false); this.paint(id, false, 'down'); }
+      for (const id of parts) this.matrix(id, false);
+      for (const id of combo) this.paint(id, false, 'down');
       await this.waitFrames(gap);
     }
   }

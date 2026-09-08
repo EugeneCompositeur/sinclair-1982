@@ -8,6 +8,7 @@ import { Spectrum, FRAME_MS, T_PER_FRAME } from './machine.js';
 import { Beeper } from './beeper.js';
 import { Tape } from './tape.js';
 import { Panel } from './panel.js';
+import { keep, wrapBlocks, describe } from './library.js';
 
 const remember = (key, value) => { try { localStorage.setItem(key, value); } catch {} };
 const recall = (key, fallback) => { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } };
@@ -52,6 +53,15 @@ const panel = new Panel(document.getElementById('panel'), {
     const bytes = await load(`../tapes/${file}`);
     if (bytes) machine.insert(new Tape(bytes, file));
   },
+  insertBytes: (name, bytes) => machine.insert(new Tape(bytes, name)),
+  importTape: async file => {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const header = describe(bytes.subarray(2, 2 + (bytes[0] | (bytes[1] << 8))));
+    const name = header?.name || file.name.replace(/\.tap$/i, '').toUpperCase();
+    keep(name, bytes, header?.kind ?? 'лента');
+    machine.insert(new Tape(bytes, name));
+    say(`взята лента: ${name}`);
+  },
   autoLoad: async () => {
     machine.reset();
     keyboard.releaseAll();
@@ -67,7 +77,30 @@ const wake = () => { beeper.start(); removeEventListener('pointerdown', wake); r
 addEventListener('pointerdown', wake);
 addEventListener('keydown', wake);
 
+// SAVE on the machine gives us a header block and then the program itself.
+// Together they make a tape, and it goes on the shelf.
+let recording = null;
+machine.onSave = block => {
+  const header = describe(block);
+  if (header) { recording = { header: block, ...header }; return; }
+  if (!recording) return;
+  const tape = wrapBlocks([recording.header, block]);
+  const stored = keep(recording.name, tape, recording.kind);
+  say(stored ? `сохранено: ${recording.name}` : 'не поместилось в память браузера');
+  recording = null;
+};
+
+const toast = document.getElementById('toast');
+let toastTimer = 0;
+function say(text) {
+  toast.textContent = text;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.hidden = true; }, 3200);
+}
+
 globalThis.spectrum = machine;
+globalThis.keyboard = keyboard;
 
 // A pixel must stay square and a character cell exactly eight by eight, so the
 // picture is only ever shown at a whole multiple of its own 320x240. Rather

@@ -315,6 +315,13 @@ body {
 .main-plain { font-size: 7.5px; font-weight: 700; letter-spacing: .07em; color: var(--ink); }
 .cap[data-id="EXT"] .main-plain { font-size: 13px; letter-spacing: 0; }
 
+/* Keys whose face is a single sign want that sign at a readable size. */
+.cap[data-id="LEFT"] .main-plain,
+.cap[data-id="DOWN"] .main-plain,
+.cap[data-id="UP"] .main-plain,
+.cap[data-id="RIGHT"] .main-plain,
+.cap[data-id="CS2"] .main-plain { font-size: 16px; letter-spacing: 0; }
+
 .ss { font-size: 9px; font-weight: 700; color: var(--red); white-space: nowrap; }
 .kw { font-size: 7px; font-weight: 600; letter-spacing: .03em; color: var(--legend); white-space: nowrap; }
 .hint { font-size: 6px; font-weight: 600; letter-spacing: .09em; color: var(--hint); white-space: nowrap; }
@@ -452,7 +459,7 @@ body {
   overflow-x: auto;
 }
 
-.card-buttons { display: flex; gap: 8px; margin-top: 10px; }
+.card-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .button {
   padding: 6px 12px;
   border: 1px solid var(--panel-line);
@@ -480,3 +487,21 @@ body {
     box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
   }
 }
+
+/* ---- a word from the machine ---- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  z-index: 20;
+  padding: 9px 16px;
+  border: 1px solid var(--panel-line);
+  border-radius: 9px;
+  background: var(--panel-card);
+  color: var(--panel-ink);
+  font-size: 13px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+}
+.toast[hidden] { display: none; }

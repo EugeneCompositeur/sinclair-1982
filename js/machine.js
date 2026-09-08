@@ -10,9 +10,10 @@ import { Z80 } from './z80.js';
 export const T_PER_FRAME = 69888;
 export const FRAME_MS = 1000 * T_PER_FRAME / 3500000;
 
-// LD-BYTES, the ROM routine that reads a block off tape. We answer it
-// ourselves instead of pretending to be a cassette player.
-const LD_BYTES = 0x0556;
+// The two ROM routines that talk to the cassette recorder. We answer them
+// ourselves instead of pretending to be one.
+const LD_BYTES = 0x0556;   // reads a block off tape
+const SA_BYTES = 0x04c2;   // writes a block to tape
 
 export class Spectrum {
   constructor(rom) {
@@ -87,6 +88,7 @@ export class Spectrum {
     const end = cpu.tstates + T_PER_FRAME;
     while (cpu.tstates < end) {
       if (cpu.pc === LD_BYTES && this.tape) this.loadBlock();
+      else if (cpu.pc === SA_BYTES) this.saveBlock();
       else cpu.step();
     }
     cpu.tstates -= T_PER_FRAME;         // carry the overshoot into the next frame
@@ -118,6 +120,26 @@ export class Spectrum {
     cpu.de = 0;
     cpu.f |= 0x01;
     cpu.pc = cpu.pop();
+  }
+
+  // What SA-BYTES would have written to tape, handed over instead. On entry IX
+  // says where the bytes are, DE how many, and A which kind of block. The block
+  // that comes out is exactly what a real recorder would have heard.
+  saveBlock() {
+    const cpu = this.cpu;
+    const address = cpu.ix, length = cpu.de;
+    const block = new Uint8Array(length + 2);
+    block[0] = cpu.a;
+    for (let i = 0; i < length; i++) block[i + 1] = this.memory[(address + i) & 0xffff];
+    let sum = 0;
+    for (let i = 0; i <= length; i++) sum ^= block[i];
+    block[length + 1] = sum;
+
+    cpu.ix = (address + length) & 0xffff;
+    cpu.de = 0;
+    cpu.f |= 0x01;
+    cpu.pc = cpu.pop();
+    this.onSave?.(block);
   }
 
   // The speaker is one bit; a sample is that bit averaged over its own little

@@ -3,6 +3,7 @@
 
 import { KEYS } from './rom-data.js';
 import { COMMANDS, GROUPS } from './commands.js';
+import { saved, forget, download } from './library.js';
 
 // Which keys produce which word — worked out from the ROM's own tables rather
 // than written down by hand.
@@ -66,8 +67,37 @@ export class Panel {
   // ---- the shelf ----
 
   async renderTapes() {
-    this.body.appendChild(el('p', 'panel-note',
-      'Всё, что лежит на полке. Вставь ленту и набери LOAD "" — или нажми «загрузить», и машина сделает это сама.'));
+    const how = el('p', 'panel-note',
+      'Свои программы записывай прямо на машине: набери SAVE "ИМЯ", нажми ENTER, ' +
+      'и когда она попросит — любую клавишу. Запись появится здесь и переживёт закрытие браузера.');
+    this.body.appendChild(how);
+
+    const row = el('div', 'card-buttons');
+    const pick = el('button', 'button', 'взять ленту с диска');
+    const file = document.createElement('input');
+    file.type = 'file';
+    file.accept = '.tap';
+    file.hidden = true;
+    pick.addEventListener('click', () => file.click());
+    file.addEventListener('change', async () => {
+      if (file.files[0]) { await this.actions.importTape(file.files[0]); this.show('tapes'); }
+    });
+    row.append(pick, file);
+    this.body.appendChild(row);
+
+    const mine = saved();
+    if (mine.length) {
+      const section = el('section', 'group');
+      section.appendChild(el('h3', 'group-title', 'Мои записи'));
+      for (const item of mine) section.appendChild(this.tapeCard({
+        name: item.name,
+        note: `${item.kind}, ${Math.max(1, Math.round(item.size / 1024 * 10) / 10)} КБ — ` +
+              new Date(item.when).toLocaleString('ru'),
+        bytes: item.bytes,
+        id: item.id,
+      }));
+      this.body.appendChild(section);
+    }
 
     if (!this.tapes) {
       const loading = el('p', 'panel-note', 'Смотрю, что на полке…');
@@ -80,39 +110,64 @@ export class Panel {
       if (this.view !== 'tapes') return;
     }
 
-    if (!this.tapes.length) {
-      this.body.appendChild(el('p', 'panel-note', 'Полка пуста.'));
-      return;
+    if (this.tapes.length) {
+      const section = el('section', 'group');
+      section.appendChild(el('h3', 'group-title', 'Полка'));
+      for (const tape of this.tapes) section.appendChild(this.tapeCard({
+        name: tape.name,
+        note: tape.note || `${Math.round(tape.bytes / 1024 * 10) / 10} КБ`,
+        file: tape.file,
+      }));
+      this.body.appendChild(section);
+    }
+  }
+
+  tapeCard({ name, note, file, bytes, id }) {
+    const card = el('div', 'card');
+    const head = el('div', 'card-head');
+    head.append(el('span', 'card-name', name), el('span', 'card-key', id ? 'моё' : 'полка'));
+    card.appendChild(head);
+    if (note) card.appendChild(el('p', 'card-how', note));
+
+    const put = async () => {
+      if (file) await this.actions.insertTape(file);
+      else this.actions.insertBytes(name, bytes());
+    };
+
+    const row = el('div', 'card-buttons');
+    const insert = el('button', 'button', 'вставить');
+    insert.addEventListener('click', async () => {
+      await put();
+      insert.textContent = 'вставлена';
+      setTimeout(() => { insert.textContent = 'вставить'; }, 1400);
+    });
+    const play = el('button', 'button button-strong', 'загрузить');
+    play.addEventListener('click', async () => {
+      play.disabled = true;
+      play.textContent = 'загружаю…';
+      await put();
+      await this.actions.autoLoad();
+      play.disabled = false;
+      play.textContent = 'загрузить';
+      this.close();
+    });
+    row.append(insert, play);
+
+    if (id) {
+      const keep = el('button', 'button', 'скачать');
+      keep.addEventListener('click', () => download(name, bytes()));
+      const drop = el('button', 'button', 'стереть');
+      drop.addEventListener('click', () => {
+        if (drop.dataset.sure) { forget(id); this.show('tapes'); return; }
+        drop.dataset.sure = '1';
+        drop.textContent = 'точно?';
+        setTimeout(() => { delete drop.dataset.sure; drop.textContent = 'стереть'; }, 3000);
+      });
+      row.append(keep, drop);
     }
 
-    for (const tape of this.tapes) {
-      const card = el('div', 'card');
-      const head = el('div', 'card-head');
-      head.append(el('span', 'card-name', tape.name), el('span', 'card-key', `${Math.round(tape.bytes / 1024 * 10) / 10} КБ`));
-      card.appendChild(head);
-      if (tape.note) card.appendChild(el('p', 'card-text', tape.note));
-
-      const row = el('div', 'card-buttons');
-      const insert = el('button', 'button', 'вставить');
-      insert.addEventListener('click', async () => {
-        await this.actions.insertTape(tape.file);
-        insert.textContent = 'вставлена';
-        setTimeout(() => { insert.textContent = 'вставить'; }, 1400);
-      });
-      const play = el('button', 'button button-strong', 'загрузить');
-      play.addEventListener('click', async () => {
-        play.disabled = true;
-        play.textContent = 'загружаю…';
-        await this.actions.insertTape(tape.file);
-        await this.actions.autoLoad();
-        play.disabled = false;
-        play.textContent = 'загрузить';
-        this.close();
-      });
-      row.append(insert, play);
-      card.appendChild(row);
-      this.body.appendChild(card);
-    }
+    card.appendChild(row);
+    return card;
   }
 
   // ---- every command in the language ----
